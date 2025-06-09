@@ -1,9 +1,24 @@
+import requests
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI
 
-from .config import SERVICE_HOST, SERVICE_PORT
+from .config import CALLBACK_ADDRESS, SERVICE_HOST, SERVICE_PORT
 from .handler import get_handlers
 from .logger import logger
+
+
+def send_callback(task_address: str, result: dict):
+    """
+    Placeholder function to send a callback with the result.
+    This function should be implemented to handle the callback logic.
+    """
+    # Implement the callback logic here
+    callback_url = f"{CALLBACK_ADDRESS}/{task_address}"
+    # Example: Use requests or httpx to send the result to the callback URL
+    response = requests.post(callback_url, json=result)
+    if response.status_code != 200:
+        logger.error(f"Failed to send callback: {response.status_code} {response.text}")
+    logger.info(f"Callback sent to {callback_url} with result: {result}")
 
 
 def start():
@@ -30,6 +45,9 @@ def start():
                 try:
                     result = handler(data)
                     if result:
+                        ## callback operation
+                        send_callback(task_address, result.model_dump())
+
                         logger.task_success(  # type: ignore
                             f"[{task_address}] Function: `{function_name}`, Result → "
                             + ", ".join(
