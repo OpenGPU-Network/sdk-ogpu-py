@@ -56,6 +56,12 @@
         "internalType": "address",
         "name": "provider",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "suggestedPayment",
+        "type": "uint256"
       }
     ],
     "name": "Attempted",
@@ -100,6 +106,12 @@
         "internalType": "address",
         "name": "source",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "preferredEnvironment",
+        "type": "uint8"
       }
     ],
     "name": "Registered",
@@ -197,9 +209,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes1",
+            "internalType": "uint8",
             "name": "imageEnvironments",
-            "type": "bytes1"
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -213,7 +225,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "maxExpiryTime",
+            "name": "maxExpiryDuration",
             "type": "uint256"
           },
           {
@@ -340,6 +352,11 @@
         "internalType": "address",
         "name": "provider",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "suggestedPayment",
+        "type": "uint256"
       }
     ],
     "name": "attempt",
@@ -532,9 +549,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes1",
+            "internalType": "uint8",
             "name": "imageEnvironments",
-            "type": "bytes1"
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -548,7 +565,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "maxExpiryTime",
+            "name": "maxExpiryDuration",
             "type": "uint256"
           },
           {
@@ -593,6 +610,11 @@
         "internalType": "address",
         "name": "provider",
         "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "preferredEnvironment",
+        "type": "uint8"
       }
     ],
     "name": "register",
@@ -861,9 +883,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes1",
+            "internalType": "uint8",
             "name": "imageEnvironments",
-            "type": "bytes1"
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -877,7 +899,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "maxExpiryTime",
+            "name": "maxExpiryDuration",
             "type": "uint256"
           },
           {

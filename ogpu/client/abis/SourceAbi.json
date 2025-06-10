@@ -14,9 +14,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes1",
+            "internalType": "uint8",
             "name": "imageEnvironments",
-            "type": "bytes1"
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -30,7 +30,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "maxExpiryTime",
+            "name": "maxExpiryDuration",
             "type": "uint256"
           },
           {
@@ -189,9 +189,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes1",
+            "internalType": "uint8",
             "name": "imageEnvironments",
-            "type": "bytes1"
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -205,7 +205,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "maxExpiryTime",
+            "name": "maxExpiryDuration",
             "type": "uint256"
           },
           {
@@ -317,6 +317,25 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "preferredEnvironmentOf",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "task",
         "type": "address"
       }
@@ -332,6 +351,11 @@
         "internalType": "address",
         "name": "provider",
         "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "preferredEnvironment",
+        "type": "uint8"
       }
     ],
     "name": "register",
@@ -405,9 +429,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes1",
+            "internalType": "uint8",
             "name": "imageEnvironments",
-            "type": "bytes1"
+            "type": "uint8"
           },
           {
             "internalType": "uint256",
@@ -421,7 +445,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "maxExpiryTime",
+            "name": "maxExpiryDuration",
             "type": "uint256"
           },
           {
@@ -483,9 +507,9 @@
         "type": "string"
       },
       {
-        "internalType": "bytes1",
+        "internalType": "uint8",
         "name": "imageEnvironments",
-        "type": "bytes1"
+        "type": "uint8"
       },
       {
         "internalType": "uint256",
@@ -499,7 +523,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "maxExpiryTime",
+        "name": "maxExpiryDuration",
         "type": "uint256"
       },
       {

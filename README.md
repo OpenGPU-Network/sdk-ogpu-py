@@ -3,7 +3,7 @@
 Welcome to the edge of distributed AI.
 
 The `ogpu.service` SDK lets you write **task handlers** that will run **on remote provider machines** — not your laptop.  
-You define what your task expects and yapar, and we handle the wiring, serving, and background magic.
+You define what your task expects and does, and we handle the wiring, serving, and background magic.
 
 > ✨ Write your task. 🛰️ Deploy it. ⚡️ Let the network run it.
 
@@ -44,7 +44,7 @@ def multiply(data: MultiplyInput) -> MultiplyOutput:
 ogpu.service.start()
 ```
 
-That’s it.
+That's it.
 This exposes an endpoint at:
 
 ```

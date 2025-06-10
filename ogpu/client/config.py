@@ -6,7 +6,7 @@ from web3 import Web3
 
 load_dotenv()
 
-WEB3_RPC_URL = os.getenv("WEB3_RPC_URL")
+WEB3_RPC_URL = os.getenv("WEB3_RPC_URL", "https://testnetrpc.ogpuscan.io")
 if not WEB3_RPC_URL:
     raise ValueError("`WEB3_RPC_URL` environment variable is not set.")
 

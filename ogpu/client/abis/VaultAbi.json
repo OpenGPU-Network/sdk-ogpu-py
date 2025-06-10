@@ -24,7 +24,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -43,9 +43,9 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
-        "name": "beneficiary",
+        "name": "account",
         "type": "address"
       },
       {
@@ -62,7 +62,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -81,7 +81,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -100,7 +100,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -112,14 +112,14 @@
         "type": "uint256"
       }
     ],
-    "name": "Unlocked",
+    "name": "Unbonded",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -138,9 +138,9 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
-        "name": "beneficiary",
+        "name": "account",
         "type": "address"
       },
       {
@@ -209,7 +209,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "beneficiary",
+        "name": "account",
         "type": "address"
       }
     ],
@@ -418,6 +418,24 @@
       }
     ],
     "name": "processPayment",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "client",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "task",
+        "type": "address"
+      }
+    ],
+    "name": "releasePayment",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

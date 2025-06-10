@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ogpu"
-version = "0.2.0.1"
+version = "0.2.0.2"
 description = "OpenGPU SDK for distributed AI task deployment"
 authors = [
     { name="Kutay", email="kutay@opengpu.network" }
@@ -20,6 +20,7 @@ dependencies = [
     "sentry_sdk==2.29.1",
     "python-dotenv==1.1.0",
     "web3==7.12.0",
+    "requests==2.32.3",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

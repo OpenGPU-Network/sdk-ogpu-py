@@ -92,11 +92,13 @@ if config.SENTRY_DSN:
     sentry_sdk.init(
         dsn=config.SENTRY_DSN,
         traces_sample_rate=0.1,
-        environment=os.getenv("OGPU_SERVICE_ENV", "production"),
-        release="0.0.1",
+        environment="production",
+        release=config.SDK_VERSION,
     )
 
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("source_address", config.SOURCE_ADDRESS)
+        scope.set_tag("provider_address", config.PROVIDER_ADDRESS)
+        scope.set_tag("protocol_version", config.PROTOCOL_VERSION)
 
     logger.info("Sentry logging enabled.")

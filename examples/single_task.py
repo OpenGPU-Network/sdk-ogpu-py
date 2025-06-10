@@ -4,6 +4,13 @@ from pydantic import BaseModel
 import ogpu.service
 
 
+@ogpu.service.init()
+def setup():
+    ogpu.service.logger.info("Loading models and resources...")
+    # Load your models, download files, etc.
+    ogpu.service.logger.info("Setup complete!")
+
+
 class MultiplyInput(BaseModel):
     """
     Input model for multiplication operation.

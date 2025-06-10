@@ -1,10 +1,16 @@
 import os
+from importlib.metadata import version
 
-SENTRY_DSN = os.getenv("OGPU_SERVICE_SENTRY_DSN")
+SDK_VERSION = version("ogpu")
+
+SENTRY_DSN = os.getenv("OGPU_SDK_SENTRY_DSN")
+
+PROTOCOL_VERSION = os.getenv("PROTOCOL_VERSION")
 
 SOURCE_ADDRESS = os.getenv("SOURCE_ADDRESS", "0xundefined")
+PROVIDER_ADDRESS = os.getenv("PROVIDER_ADDRESS", "0xundefined")
+CALLBACK_ADDRESS = os.getenv("CALLBACK_ADDRESS")
+
 
 SERVICE_HOST = "0.0.0.0"
 SERVICE_PORT = 5555
-
-CALLBACK_ADDRESS = os.getenv("CALLBACK_ADDRESS")

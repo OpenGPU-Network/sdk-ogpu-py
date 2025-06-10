@@ -5,7 +5,7 @@ from typing import get_type_hints
 
 from pydantic import BaseModel
 
-from .handler import add_handler, get_handlers
+from .handler import add_handler, add_init_handler, get_handlers
 from .logger import logger
 
 
@@ -89,6 +89,38 @@ def expose(timeout: int | None = None):
 
         # If no timeout, add handler directly
         add_handler(func, input_model, output_model)
+        return func
+
+    return decorator
+
+
+def init():
+    """
+    Decorator to register a single initialization function that will be executed
+    when the OpenGPU service starts up. Useful for downloading libraries,
+    setting up resources, etc.
+
+    Only one init function can be registered per service. If multiple init
+    functions are needed, they should be combined into a single function.
+
+    The decorated function should take no arguments and return None.
+    """
+
+    def decorator(func):
+        function_name = func.__name__
+
+        # Validate function signature
+        sig = inspect.signature(func)
+        parameters = list(sig.parameters.values())
+        if len(parameters) != 0:
+            raise TypeError(
+                f"Init function `{function_name}` must take no arguments (got {len(parameters)})"
+            )
+
+        # Register the initialization function (will raise error if one already exists)
+        add_init_handler(func)
+        logger.info(f"Registered init function: `{function_name}`")
+
         return func
 
     return decorator
