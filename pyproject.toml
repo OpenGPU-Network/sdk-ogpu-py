@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ogpu"
-version = "0.2.0.3"
+version = "0.2.0.4"
 description = "OpenGPU SDK for distributed AI task deployment"
 authors = [
     { name="Kutay", email="kutay@opengpu.network" }
@@ -27,3 +27,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ogpu*"]
+
+[tool.setuptools.package-data]
+ogpu = ["client/abis/**/*.json"]
