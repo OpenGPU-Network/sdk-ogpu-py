@@ -1,11 +1,12 @@
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from eth_account import Account
 from web3.exceptions import ContractLogicError
 
-from .config import CLIENT_PRIVATE_KEY, WEB3
+from .config import CLIENT_PRIVATE_KEY
 from .contracts import ControllerContract, load_response_contract, load_task_contract
 from .types import Response
+from .web3_manager import WEB3
 
 
 def get_task_responses(

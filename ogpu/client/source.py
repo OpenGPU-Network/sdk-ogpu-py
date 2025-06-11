@@ -1,15 +1,14 @@
-import json
 import warnings
 
 from eth_account import Account
-from web3 import Web3
 
 # Suppress MismatchedABI warnings
 warnings.filterwarnings("ignore", message=".*MismatchedABI.*")
 
-from .config import CLIENT_PRIVATE_KEY, WEB3
+from .config import CLIENT_PRIVATE_KEY
 from .contracts import NexusContract
-from .types import ImageMetadata, SourceInfo, SourceParams
+from .types import SourceInfo
+from .web3_manager import WEB3
 
 
 def publish_source(

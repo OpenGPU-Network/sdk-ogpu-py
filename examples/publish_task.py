@@ -2,7 +2,9 @@ import time
 
 from web3 import Web3
 
-from ogpu.client import TaskInfo, TaskInput, publish_task
+from ogpu.client import ChainConfig, ChainId, TaskInfo, TaskInput, publish_task
+
+ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
 # Create task configuration
 task_config = TaskInput(

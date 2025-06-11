@@ -1,6 +1,14 @@
 from web3 import Web3
 
-from ogpu.client import ImageEnvironments, SourceInfo, publish_source
+from ogpu.client import (
+    ChainConfig,
+    ChainId,
+    ImageEnvironments,
+    SourceInfo,
+    publish_source,
+)
+
+ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
 source_info = SourceInfo(
     name="OGPU Activity Rewarder",

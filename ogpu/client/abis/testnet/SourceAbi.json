@@ -1,0 +1,611 @@
+[
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "client",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "imageMetadataUrl",
+            "type": "string"
+          },
+          {
+            "internalType": "uint8",
+            "name": "imageEnvironments",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minPayment",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minAvailableLockup",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxExpiryDuration",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "privacyEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "optionalParamsUrl",
+            "type": "string"
+          },
+          {
+            "internalType": "enum DeliveryMethod",
+            "name": "deliveryMethod",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastUpdateTime",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SourceParams",
+        "name": "_sourceParams",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableInvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "getClient",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getRegistrantCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "provider",
+        "type": "address"
+      }
+    ],
+    "name": "getRegistrantId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "lower",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "upper",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRegistrants",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getSourceParams",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "client",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "imageMetadataUrl",
+            "type": "string"
+          },
+          {
+            "internalType": "uint8",
+            "name": "imageEnvironments",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minPayment",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minAvailableLockup",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxExpiryDuration",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "privacyEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "optionalParamsUrl",
+            "type": "string"
+          },
+          {
+            "internalType": "enum DeliveryMethod",
+            "name": "deliveryMethod",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastUpdateTime",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SourceParams",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getStatus",
+    "outputs": [
+      {
+        "internalType": "enum SourceStatus",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTaskCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "lower",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "upper",
+        "type": "uint256"
+      }
+    ],
+    "name": "getTasks",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nexus",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "preferredEnvironmentOf",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "task",
+        "type": "address"
+      }
+    ],
+    "name": "publishTask",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "provider",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "preferredEnvironment",
+        "type": "uint8"
+      }
+    ],
+    "name": "register",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "registrantId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "registrants",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "client",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "imageMetadataUrl",
+            "type": "string"
+          },
+          {
+            "internalType": "uint8",
+            "name": "imageEnvironments",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minPayment",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minAvailableLockup",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxExpiryDuration",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "privacyEnabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "optionalParamsUrl",
+            "type": "string"
+          },
+          {
+            "internalType": "enum DeliveryMethod",
+            "name": "deliveryMethod",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastUpdateTime",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SourceParams",
+        "name": "_sourceParams",
+        "type": "tuple"
+      }
+    ],
+    "name": "setSourceParams",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum SourceStatus",
+        "name": "_status",
+        "type": "uint8"
+      }
+    ],
+    "name": "setStatus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "sourceParams",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "client",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "imageMetadataUrl",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "imageEnvironments",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minPayment",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minAvailableLockup",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxExpiryDuration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "privacyEnabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "optionalParamsUrl",
+        "type": "string"
+      },
+      {
+        "internalType": "enum DeliveryMethod",
+        "name": "deliveryMethod",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastUpdateTime",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "status",
+    "outputs": [
+      {
+        "internalType": "enum SourceStatus",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "tasks",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "provider",
+        "type": "address"
+      }
+    ],
+    "name": "unregister",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

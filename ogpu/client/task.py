@@ -1,11 +1,11 @@
 import warnings
 
 from eth_account import Account
-from web3 import Web3
 
-from .config import CLIENT_PRIVATE_KEY, WEB3
+from .config import CLIENT_PRIVATE_KEY
 from .contracts import ControllerContract, NexusContract
 from .types import TaskInfo
+from .web3_manager import WEB3
 
 # Suppress MismatchedABI warnings
 warnings.filterwarnings("ignore", message=".*MismatchedABI.*")
