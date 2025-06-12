@@ -3,7 +3,7 @@ from typing import List, Optional
 from eth_account import Account
 from web3.exceptions import ContractLogicError
 
-from .config import CLIENT_PRIVATE_KEY
+from .config import get_private_key
 from .contracts import ControllerContract, load_response_contract, load_task_contract
 from .types import Response
 from .web3_manager import WEB3
@@ -112,14 +112,14 @@ def get_task_responses(
 
 def confirm_response(
     response_address: str,
-    private_key: str | None = CLIENT_PRIVATE_KEY,
+    private_key: str | None = None,
 ) -> str:
     """
     Confirm a response using the Controller contract.
 
     Args:
         response_address: The response contract address to confirm
-        private_key: Private key for signing the transaction
+        private_key: Private key for signing the transaction. If None, will use CLIENT_PRIVATE_KEY environment variable.
 
     Returns:
         str: Transaction hash of the confirmation
@@ -127,10 +127,8 @@ def confirm_response(
     Raises:
         Exception: If the confirmation fails
     """
-    if not private_key:
-        raise ValueError(
-            "Private key is required. Set CLIENT_PRIVATE_KEY environment variable or pass private_key parameter."
-        )
+    if private_key is None:
+        private_key = get_private_key()
 
     # Validate response address format
     if not WEB3.is_address(response_address):
@@ -155,18 +153,21 @@ def confirm_response(
             # If it's another error, continue and let the transaction attempt provide more info
 
         # Execute the confirmation transaction
-        tx = ControllerContract.functions.confirmResponse(
+        controller_contract = ControllerContract()
+        web3 = WEB3()
+
+        tx = controller_contract.functions.confirmResponse(
             response_address
         ).build_transaction(
             {
                 "from": acc.address,
-                "nonce": WEB3.eth.get_transaction_count(acc.address),
+                "nonce": web3.eth.get_transaction_count(acc.address),
             }
         )
 
-        signed = WEB3.eth.account.sign_transaction(tx, private_key)
-        tx_hash = WEB3.eth.send_raw_transaction(signed.raw_transaction)
-        receipt = WEB3.eth.wait_for_transaction_receipt(tx_hash)
+        signed = web3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
         if receipt["status"] != 1:
             raise Exception(f"Transaction failed: {tx_hash.hex()}")

@@ -8,16 +8,16 @@ ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
 # Create task configuration
 task_config = TaskInput(
-    function_name="rewarder",
+    function_name="some_function",
     data={
-        "provider": "0xefAF383fB02cDf98b0Fae3E95001D888Ae7358f4",
-        "reward": 0.004166666666666667,
+        "input": "example input data",
+        "additional_param": "optional value",
     },
 )
 
 # Create task info
 task_info = TaskInfo(
-    source="0xbED73Af03698e4B91D397c7610B972bad018a752",
+    source="0x4288fCDF9815718358cb481A82A4dB123e6D0b45",
     config=task_config,
     expiryTime=int(time.time()) + 3600,  # 1 hour from now
     payment=Web3.to_wei(0.01, "ether"),

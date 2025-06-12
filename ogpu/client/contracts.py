@@ -2,6 +2,8 @@ import json
 import os
 from typing import Optional
 
+from web3.contract import Contract
+
 from .chain_config import ChainConfig, ChainId
 from .utils import load_contract
 
@@ -24,47 +26,65 @@ class ContractManager:
     @classmethod
     def _load_contracts_for_chain(cls, chain_id: ChainId):
         """Load contracts for a specific chain"""
-        nexus_address = ChainConfig.get_contract_address("NEXUS")
-        controller_address = ChainConfig.get_contract_address("CONTROLLER")
+        try:
+            nexus_address = ChainConfig.get_contract_address("NEXUS")
+            controller_address = ChainConfig.get_contract_address("CONTROLLER")
 
-        # Load ABIs for current chain
-        nexus_abi = ChainConfig.load_abi("NexusAbi")
-        controller_abi = ChainConfig.load_abi("ControllerAbi")
+            # Load ABIs for current chain
+            nexus_abi = ChainConfig.load_abi("NexusAbi")
+            controller_abi = ChainConfig.load_abi("ControllerAbi")
 
-        cls._nexus_contract = load_contract(nexus_address, nexus_abi)
-        cls._controller_contract = load_contract(controller_address, controller_abi)
-        cls._current_chain = chain_id
+            cls._nexus_contract = load_contract(nexus_address, nexus_abi)
+            cls._controller_contract = load_contract(controller_address, controller_abi)
+            cls._current_chain = chain_id
+
+            # Verify contracts were loaded successfully
+            if cls._nexus_contract is None:
+                raise RuntimeError(f"Failed to load Nexus contract at {nexus_address}")
+            if cls._controller_contract is None:
+                raise RuntimeError(
+                    f"Failed to load Controller contract at {controller_address}"
+                )
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to load contracts for chain {chain_id}: {e}")
 
     @classmethod
-    def get_nexus_contract(cls):
+    def get_nexus_contract(cls) -> Contract:
         """Get the Nexus contract for the current chain"""
         cls._ensure_contracts_loaded()
+        if cls._nexus_contract is None:
+            raise RuntimeError("Nexus contract is not loaded.")
         return cls._nexus_contract
 
     @classmethod
-    def get_controller_contract(cls):
+    def get_controller_contract(cls) -> Contract:
         """Get the Controller contract for the current chain"""
         cls._ensure_contracts_loaded()
+        if cls._controller_contract is None:
+            raise RuntimeError("Controller contract is not loaded.")
         return cls._controller_contract
 
     # Backward compatibility properties
 
 
-def NexusContract():
+def NexusContract() -> Contract:
+    """Get the Nexus contract for the current chain"""
     return ContractManager.get_nexus_contract()
 
 
-def ControllerContract():
+def ControllerContract() -> Contract:
+    """Get the Controller contract for the current chain"""
     return ContractManager.get_controller_contract()
 
 
-def load_task_contract(task_address: str):
+def load_task_contract(task_address: str) -> Contract:
     """Load a task contract instance for a given address"""
     task_abi = ChainConfig.load_abi("TaskAbi")
     return load_contract(task_address, task_abi)
 
 
-def load_response_contract(response_address: str):
+def load_response_contract(response_address: str) -> Contract:
     """Load a response contract instance for a given address"""
     response_abi = ChainConfig.load_abi("ResponseAbi")
     return load_contract(response_address, response_abi)

@@ -11,8 +11,8 @@ from ogpu.client import (
 ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
 source_info = SourceInfo(
-    name="OGPU Activity Rewarder",
-    description="this is a test image metadata for the OGPU Activity Rewarder",
+    name="test-source",
+    description="test-description",
     logoUrl="https://www.dextools.io/resources/tokens/logos/ether/0x067def80d66fb69c276e53b641f37ff7525162f6.png",
     imageEnvs=ImageEnvironments(
         cpu="https://cipfs.ogpuscan.io/ipfs/QmNWFLL13ujf3KUTJvfNx42bA5fWDV96qqUdjY6nwpuwD9",

@@ -3,11 +3,12 @@ from typing import Any, Dict, Union
 
 import requests
 from web3 import Web3
+from web3.contract import Contract
 
 from .web3_manager import Web3Manager
 
 
-def load_contract(address: str, abi: Dict):
+def load_contract(address: str, abi: Dict) -> Contract:
     web3 = Web3Manager.get_web3_instance()
     return web3.eth.contract(address=Web3.to_checksum_address(address), abi=abi)
 
