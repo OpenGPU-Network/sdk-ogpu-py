@@ -1,12 +1,20 @@
 import json
 import time
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
 
 from .environment import Environment, combine_environments
 from .utils import publish_to_ipfs
+
+
+class DeliveryMethod(Enum):
+    """Enum for delivery method options."""
+
+    MANUAL_CONFIRMATION = 0  # client manually confirms the response
+    FIRST_RESPONSE = 1  # first provider to submit a response wins
 
 
 class SourceParams(BaseModel):
@@ -94,6 +102,7 @@ class SourceInfo:
     minPayment: int  # in wei
     minAvailableLockup: int  # in wei
     maxExpiryDuration: int  # in seconds
+    deliveryMethod: DeliveryMethod = DeliveryMethod.MANUAL_CONFIRMATION
 
     def to_source_params(self, client_address: str) -> SourceParams:
         """Convert to SourceParams for internal use."""
@@ -135,7 +144,7 @@ class SourceInfo:
             ## Default values for optional parameters
             privacyEnabled=False,
             optionalParamsUrl="",
-            deliveryMethod=0,
+            deliveryMethod=self.deliveryMethod.value,
             lastUpdateTime=int(time.time()),
         )
 

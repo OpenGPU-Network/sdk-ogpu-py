@@ -3,7 +3,7 @@ from .contracts import ContractManager
 from .responses import confirm_response, get_task_responses
 from .source import publish_source
 from .task import publish_task
-from .types import ImageEnvironments, SourceInfo, TaskInfo, TaskInput
+from .types import DeliveryMethod, ImageEnvironments, SourceInfo, TaskInfo, TaskInput
 
 __all__ = [
     "publish_source",
@@ -13,6 +13,7 @@ __all__ = [
     "TaskInfo",
     "TaskInput",
     "ImageEnvironments",
+    "DeliveryMethod",
     "confirm_response",
     "ChainConfig",
     "ChainId",

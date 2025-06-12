@@ -3,6 +3,7 @@ from web3 import Web3
 from ogpu.client import (
     ChainConfig,
     ChainId,
+    DeliveryMethod,
     ImageEnvironments,
     SourceInfo,
     publish_source,
@@ -20,6 +21,7 @@ source_info = SourceInfo(
     minPayment=Web3.to_wei(0.01, "ether"),
     minAvailableLockup=Web3.to_wei(0, "ether"),
     maxExpiryDuration=86400,  # 24 hour in seconds
+    deliveryMethod=DeliveryMethod.FIRST_RESPONSE,
 )
 
 # Publish the source
