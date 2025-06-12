@@ -145,13 +145,17 @@ class TaskInput:
     """Configuration structure for tasks."""
 
     function_name: str
-    data: dict
+    data: BaseModel | dict[str, Any]
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
         return {
             "function_name": self.function_name,
-            "data": self.data,
+            "data": (
+                self.data.model_dump()
+                if isinstance(self.data, BaseModel)
+                else self.data
+            ),
         }
 
 

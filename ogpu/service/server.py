@@ -5,7 +5,7 @@ import requests
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI
 
-from .config import CALLBACK_ADDRESS, SERVICE_HOST, SERVICE_PORT
+from .config import CALLBACK_URL, SERVICE_HOST, SERVICE_PORT
 from .handler import get_handlers, get_init_handler
 from .logger import logger
 
@@ -16,14 +16,14 @@ def send_callback(task_address: str, result: dict):
     This function should be implemented to handle the callback logic.
     """
 
-    if not CALLBACK_ADDRESS:
+    if not CALLBACK_URL:
         logger.info(
             f"No callback address configured, skipping callback for task: {task_address}"
         )
         return
 
     # Implement the callback logic here
-    callback_url = f"{CALLBACK_ADDRESS}/{task_address}"
+    callback_url = f"{CALLBACK_URL}/{task_address}"
     # Example: Use requests or httpx to send the result to the callback URL
     response = requests.post(callback_url, json=result)
     if response.status_code != 200:

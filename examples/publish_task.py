@@ -1,18 +1,29 @@
 import time
 
+from pydantic import BaseModel
 from web3 import Web3
 
 from ogpu.client import ChainConfig, ChainId, TaskInfo, TaskInput, publish_task
 
 ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
+
+class MyTaskModel(BaseModel):
+    """
+    Input model for multiplication operation.
+    """
+
+    input: str
+    additional_param: int = 0  # Optional parameter with default value
+
+
 # Create task configuration
 task_config = TaskInput(
     function_name="some_function",
-    data={
-        "input": "example input data",
-        "additional_param": "optional value",
-    },
+    data=MyTaskModel(
+        input="a photo of an astronaut riding a horse on mars",
+        additional_param=42,  # Example additional parameter
+    ),
 )
 
 # Create task info
