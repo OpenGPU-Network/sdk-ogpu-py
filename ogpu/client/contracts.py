@@ -13,6 +13,7 @@ class ContractManager:
 
     _nexus_contract = None
     _controller_contract = None
+    _terminal_contract = None
     _current_chain = None
 
     @classmethod
@@ -29,13 +30,16 @@ class ContractManager:
         try:
             nexus_address = ChainConfig.get_contract_address("NEXUS")
             controller_address = ChainConfig.get_contract_address("CONTROLLER")
+            terminal_address = ChainConfig.get_contract_address("TERMINAL")
 
             # Load ABIs for current chain
             nexus_abi = ChainConfig.load_abi("NexusAbi")
             controller_abi = ChainConfig.load_abi("ControllerAbi")
+            terminal_abi = ChainConfig.load_abi("TerminalAbi")
 
             cls._nexus_contract = load_contract(nexus_address, nexus_abi)
             cls._controller_contract = load_contract(controller_address, controller_abi)
+            cls._terminal_contract = load_contract(terminal_address, terminal_abi)
             cls._current_chain = chain_id
 
             # Verify contracts were loaded successfully
@@ -65,6 +69,14 @@ class ContractManager:
             raise RuntimeError("Controller contract is not loaded.")
         return cls._controller_contract
 
+    @classmethod
+    def get_terminal_contract(cls) -> Contract:
+        """Get the Terminal contract for the current chain"""
+        cls._ensure_contracts_loaded()
+        if cls._terminal_contract is None:
+            raise RuntimeError("Terminal contract is not loaded.")
+        return cls._terminal_contract
+
     # Backward compatibility properties
 
 
@@ -76,6 +88,11 @@ def NexusContract() -> Contract:
 def ControllerContract() -> Contract:
     """Get the Controller contract for the current chain"""
     return ContractManager.get_controller_contract()
+
+
+def TerminalContract() -> Contract:
+    """Get the Terminal contract for the current chain"""
+    return ContractManager.get_terminal_contract()
 
 
 def load_task_contract(task_address: str) -> Contract:
@@ -94,6 +111,7 @@ def load_response_contract(response_address: str) -> Contract:
 __all__ = [
     "NexusContract",
     "ControllerContract",
+    "TerminalContract",
     "load_task_contract",
     "load_response_contract",
     "ContractManager",
