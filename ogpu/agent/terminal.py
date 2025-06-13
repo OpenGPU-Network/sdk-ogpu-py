@@ -27,7 +27,8 @@ def set_agent(agent_address: str, value: bool, private_key: str) -> str:
     """
 
     # Validate agent address format
-    if not WEB3.is_address(agent_address):
+    web3 = WEB3()
+    if not web3.is_address(agent_address):
         raise ValueError(f"Invalid agent address format: {agent_address}")
 
     acc = Account.from_key(private_key)
@@ -35,7 +36,6 @@ def set_agent(agent_address: str, value: bool, private_key: str) -> str:
     try:
         # Get the Terminal contract instance
         terminal_contract = TerminalContract()
-        web3 = WEB3()
 
         # Build the transaction
         tx = terminal_contract.functions.setAgent(
