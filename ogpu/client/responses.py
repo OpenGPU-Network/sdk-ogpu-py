@@ -1,12 +1,63 @@
 from typing import List, Optional
 
+import requests
 from eth_account import Account
 from web3.exceptions import ContractLogicError
 
 from .config import get_private_key
 from .contracts import ControllerContract, load_response_contract, load_task_contract
-from .types import Response
+from .types import ConfirmedResponse, Response
 from .web3_manager import WEB3
+
+
+def get_confirmed_response(task_address: str) -> ConfirmedResponse:
+    """
+    Get confirmed response data for a specific task address by calling the API.
+
+    Args:
+        task_address: The task contract address
+
+    Returns:
+        ConfirmedResponse object containing the confirmed response data
+
+    Raises:
+        Exception: If the API call fails or no confirmed response is found
+    """
+    try:
+        # Make API request to get task responses
+        api_url = (
+            f"https://provider-viewer-backend.opengpu.network/api/tasks/{task_address}"
+        )
+
+        response = requests.get(api_url)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        api_data = response.json()
+
+        # Extract data and address from the API response
+        if "data" not in api_data:
+            raise Exception(f"Invalid API response format for task {task_address}")
+
+        data_content = api_data["data"]
+        if "address" not in data_content:
+            raise Exception(
+                f"Address not found in API response for task {task_address}"
+            )
+
+        # Create ConfirmedResponse object with the API data
+        confirmed_response = ConfirmedResponse(
+            address=data_content["address"],
+            data=data_content,
+        )
+
+        return confirmed_response
+
+    except requests.RequestException as e:
+        raise Exception(f"API request failed for task {task_address}: {e}")
+    except Exception as e:
+        raise Exception(
+            f"Error fetching confirmed response for task {task_address}: {e}"
+        )
 
 
 def get_task_responses(

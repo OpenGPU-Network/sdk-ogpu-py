@@ -217,3 +217,18 @@ class Response:
             "timestamp": self.timestamp,
             "confirmed": self.confirmed,
         }
+
+
+@dataclass
+class ConfirmedResponse:
+    """Simplified confirmed response data structure."""
+
+    address: str
+    data: str
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for backward compatibility."""
+        return {
+            "address": self.address,
+            "data": self.data,
+        }

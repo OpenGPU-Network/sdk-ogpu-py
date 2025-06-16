@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ogpu"
-version = "0.2.0.10"
+version = "0.2.0.11"
 description = "OpenGPU SDK for distributed AI task deployment"
 authors = [
     { name="Kutay", email="kutay@opengpu.network" }
