@@ -25,9 +25,7 @@ def get_confirmed_response(task_address: str) -> ConfirmedResponse:
     """
     try:
         # Make API request to get task responses
-        api_url = (
-            f"https://provider-viewer-backend.opengpu.network/api/tasks/{task_address}"
-        )
+        api_url = f"https://management-backend.opengpu.network/api/tasks/{task_address}"
 
         response = requests.get(api_url)
         response.raise_for_status()  # Raise an exception for HTTP errors
