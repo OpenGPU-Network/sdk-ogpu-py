@@ -11,13 +11,33 @@ from .utils import publish_to_ipfs
 
 
 class DeliveryMethod(Enum):
-    """Enum for delivery method options."""
+    """Enum for delivery method options.
+
+    Attributes:
+        MANUAL_CONFIRMATION: Client manually confirms the response
+        FIRST_RESPONSE: First provider to submit a response wins
+    """
 
     MANUAL_CONFIRMATION = 0  # client manually confirms the response
     FIRST_RESPONSE = 1  # first provider to submit a response wins
 
 
 class SourceParams(BaseModel):
+    """Source parameters for blockchain interaction.
+
+    Attributes:
+        client: Address of the client publishing the source
+        imageMetadataUrl: URL to the image metadata JSON file
+        imageEnvironments: Bitmask of supported environments
+        minPayment: Minimum payment required in wei
+        minAvailableLockup: Minimum lockup amount in wei
+        maxExpiryDuration: Maximum task duration in seconds
+        privacyEnabled: Whether privacy features are enabled
+        optionalParamsUrl: URL to optional parameters
+        deliveryMethod: Response delivery method (enum value)
+        lastUpdateTime: Unix timestamp of last update
+    """
+
     client: str
     imageMetadataUrl: str
     imageEnvironments: int
@@ -45,6 +65,15 @@ class SourceParams(BaseModel):
 
 
 class TaskParams(BaseModel):
+    """Task parameters for blockchain interaction.
+
+    Attributes:
+        source: Address of the source to run the task on
+        config: URL to the task configuration JSON file
+        expiryTime: Unix timestamp when task expires
+        payment: Payment amount for the task in wei
+    """
+
     source: str
     config: str
     expiryTime: int
@@ -61,7 +90,16 @@ class TaskParams(BaseModel):
 
 @dataclass
 class ImageMetadata:
-    """Image metadata structure for task sources."""
+    """Image metadata structure for task sources.
+
+    Attributes:
+        cpu: URL to CPU-only docker-compose.yml file
+        nvidia: URL to NVIDIA GPU docker-compose.yml file
+        amd: URL to AMD GPU docker-compose.yml file
+        name: Human-readable name for the source
+        description: Description of the AI service
+        logoUrl: URL to the source logo image
+    """
 
     cpu: str
     nvidia: str
@@ -84,7 +122,13 @@ class ImageMetadata:
 
 @dataclass
 class ImageEnvironments:
-    """Docker compose file paths for different environments."""
+    """Docker compose file paths for different environments.
+
+    Attributes:
+        cpu: URL to CPU-only docker-compose.yml file
+        nvidia: URL to NVIDIA GPU docker-compose.yml file
+        amd: URL to AMD GPU docker-compose.yml file
+    """
 
     cpu: str = ""
     nvidia: str = ""
@@ -93,7 +137,18 @@ class ImageEnvironments:
 
 @dataclass
 class SourceInfo:
-    """User-friendly source information structure."""
+    """User-friendly source information structure.
+
+    Attributes:
+        name: Human-readable name for the source
+        description: Description of the AI service
+        logoUrl: URL to the source logo image
+        imageEnvs: Docker environment configurations
+        minPayment: Minimum payment required in wei
+        minAvailableLockup: Minimum lockup amount in wei
+        maxExpiryDuration: Maximum task duration in seconds
+        deliveryMethod: How responses are delivered
+    """
 
     name: str
     description: str
@@ -151,7 +206,12 @@ class SourceInfo:
 
 @dataclass
 class TaskInput:
-    """Configuration structure for tasks."""
+    """Configuration structure for tasks.
+
+    Attributes:
+        function_name: Name of the function to call on the source
+        data: Input data for the function (Pydantic model or dictionary)
+    """
 
     function_name: str
     data: BaseModel | dict[str, Any]
@@ -170,7 +230,14 @@ class TaskInput:
 
 @dataclass
 class TaskInfo:
-    """User-friendly task information structure."""
+    """User-friendly task information structure.
+
+    Attributes:
+        source: Address of the source to run the task on
+        config: Task input configuration and function call
+        expiryTime: Unix timestamp when task expires
+        payment: Payment amount for the task in wei
+    """
 
     source: str
     config: TaskInput
@@ -194,7 +261,18 @@ class TaskInfo:
 
 @dataclass
 class Response:
-    """Response data structure for task responses."""
+    """Response data structure for task responses.
+
+    Attributes:
+        address: Blockchain address of the response
+        task: Address of the task this responds to
+        provider: Address of the provider who submitted the response
+        data: Response data from the AI service
+        payment: Payment amount in wei
+        status: Response status code
+        timestamp: Unix timestamp when response was submitted
+        confirmed: Whether the response has been confirmed
+    """
 
     address: str
     task: str
@@ -221,7 +299,12 @@ class Response:
 
 @dataclass
 class ConfirmedResponse:
-    """Simplified confirmed response data structure."""
+    """Simplified confirmed response data structure.
+
+    Attributes:
+        address: Blockchain address of the confirmed response
+        data: The confirmed response data
+    """
 
     address: str
     data: str

@@ -1,0 +1,109 @@
+site_name: OpenGPU SDK Documentation
+site_description: Python SDK for distributed AI task deployment on OpenGPU network
+site_author: OpenGPU Team
+site_url: https://opengpu-network.github.io/sdk-ogpu-py/
+
+repo_name: Repository
+repo_url: https://github.com/OpenGPU-Network/sdk-ogpu-py
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  palette:
+    # Palette toggle for dark mode (default)
+    - scheme: slate
+      primary: custom
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - scheme: default
+      primary: custom
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+extra_css:
+  - assets/custom.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mermaid2
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            docstring_style: google
+            merge_init_into_class: true
+            show_submodules: true
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            members_order: source
+            filters:
+              - "!^_"
+            show_bases: false
+
+nav:
+  - Getting Started:
+    - Overview: index.md
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - Sources:
+    - Overview: sources/index.md
+    - Configuration: sources/configuration.md
+    - Custom Sources: sources/custom-sources.md
+    - Templates:
+      - Overview: sources/templates/index.md
+      - HuggingFace Pipeline: sources/templates/huggingface-pipeline.md
+      - Ollama: sources/templates/ollama.md
+  - Tasks:
+    - Overview: tasks/index.md
+    - Configuration: tasks/configuration.md
+    - Publishing Tasks: tasks/publishing-tasks.md
+    - Templates:
+      - Overview: tasks/templates/index.md
+      - HuggingFace Pipeline: tasks/templates/huggingface-pipeline.md
+      - Ollama: tasks/templates/ollama.md
+  - Responses:
+    - Overview: responses/index.md
+    - Retrieving: responses/retrieving-responses.md
+    - Confirmation: responses/confirming-responses.md
+  - API Reference:
+    - ogpu.service: api/service.md
+    - ogpu.client: api/client.md
+  - Contributing: contributing.md

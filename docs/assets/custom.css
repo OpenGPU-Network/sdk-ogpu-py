@@ -1,0 +1,101 @@
+/* OpenGPU Custom Theme Colors */
+
+/* Custom primary color for headers, navbar, and links */
+:root {
+    --md-primary-fg-color: #5978ea;
+    --md-primary-fg-color--light: #7b96ed;
+    --md-primary-fg-color--dark: #465ac7;
+}
+
+/* Dark mode custom colors */
+[data-md-color-scheme="slate"] {
+    --md-primary-fg-color: #5978ea;
+    --md-primary-fg-color--light: #7b96ed;
+    --md-primary-fg-color--dark: #465ac7;
+
+    /* Ensure white text on custom colored elements */
+    --md-primary-bg-color: #ffffff;
+    --md-primary-bg-color--light: #ffffff;
+}
+
+/* Light mode custom colors */
+[data-md-color-scheme="default"] {
+    --md-primary-fg-color: #5978ea;
+    --md-primary-fg-color--light: #7b96ed;
+    --md-primary-fg-color--dark: #465ac7;
+
+    /* Ensure white text on custom colored elements */
+    --md-primary-bg-color: #ffffff;
+    --md-primary-bg-color--light: #ffffff;
+}
+
+/* Header and navigation styling */
+.md-header {
+    background-color: var(--md-primary-fg-color) !important;
+    color: #ffffff !important;
+}
+
+.md-header__title {
+    color: #ffffff !important;
+}
+
+.md-header__button {
+    color: #ffffff !important;
+}
+
+/* Navigation tabs - simple styling */
+.md-tabs {
+    background-color: var(--md-primary-fg-color) !important;
+}
+
+.md-tabs__link {
+    color: #ffffff !important;
+    opacity: 0.7;
+}
+
+.md-tabs__link:hover {
+    opacity: 0.9;
+}
+
+.md-tabs__link--active {
+    color: #ffffff !important;
+    opacity: 1;
+    font-weight: 600;
+}
+
+/* Sidebar navigation - only color changes */
+.md-nav__link--active {
+    color: var(--md-primary-fg-color) !important;
+    font-weight: 600;
+}
+
+.md-nav__item--active>.md-nav__link {
+    color: var(--md-primary-fg-color) !important;
+    font-weight: 600;
+}
+
+/* Links and buttons */
+.md-typeset a {
+    color: var(--md-primary-fg-color);
+}
+
+.md-button {
+    background-color: var(--md-primary-fg-color) !important;
+    color: #ffffff !important;
+    border-color: var(--md-primary-fg-color) !important;
+}
+
+.md-button:hover {
+    background-color: var(--md-primary-fg-color--dark) !important;
+    border-color: var(--md-primary-fg-color--dark) !important;
+}
+
+/* Search highlighting */
+.md-search__form {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Code highlighting accent */
+.md-typeset .highlight .gp {
+    color: var(--md-primary-fg-color);
+}

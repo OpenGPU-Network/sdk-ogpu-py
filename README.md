@@ -70,6 +70,16 @@ With body:
 
 ---
 
+## 📚 Documentation
+
+Complete documentation is available at: **https://opengpu-network.github.io/sdk-ogpu-py/**
+
+- **[Quick Start Guide](https://opengpu-network.github.io/sdk-ogpu-py/getting-started/quickstart/)**
+- **[API Reference](https://opengpu-network.github.io/sdk-ogpu-py/api/service/)**
+- **[Examples & Templates](https://opengpu-network.github.io/sdk-ogpu-py/sources/templates/)**
+
+---
+
 ## 🧙 Guidelines
 
 - Your task handler must accept **one** `pydantic.BaseModel` input

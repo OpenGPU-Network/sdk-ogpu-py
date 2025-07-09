@@ -5,6 +5,13 @@ from typing import Dict, Optional
 
 
 class ChainId(Enum):
+    """Enum for supported blockchain networks.
+
+    Attributes:
+        OGPU_MAINNET: Main OpenGPU network (Chain ID: 1071)
+        OGPU_TESTNET: Test OpenGPU network (Chain ID: 200820172034)
+    """
+
     OGPU_MAINNET = 1071
     OGPU_TESTNET = 200820172034
 
