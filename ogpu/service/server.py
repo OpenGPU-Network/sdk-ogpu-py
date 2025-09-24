@@ -28,7 +28,7 @@ def send_callback(task_address: str, result: dict):
     response = requests.post(callback_url, json=result)
     if response.status_code != 200:
         logger.error(f"Failed to send callback: {response.status_code} {response.text}")
-    logger.info(f"Callback sent to {callback_url} with result: {result}")
+    logger.info(f"Callback sent to {callback_url}")
 
 
 @asynccontextmanager
@@ -83,10 +83,7 @@ def start():
                     if result:
 
                         logger.task_success(  # type: ignore
-                            f"[{task_address}] Function: `{function_name}`, Result → "
-                            + ", ".join(
-                                [f"{k}={v}" for k, v in result.model_dump().items()]
-                            )
+                            f"[{task_address}] Function: `{function_name}` completed successfully"
                         )
 
                         send_callback(task_address, result.model_dump())
