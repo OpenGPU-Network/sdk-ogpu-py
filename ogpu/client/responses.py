@@ -1,3 +1,4 @@
+import time
 from typing import List, Optional
 
 import requests
@@ -6,6 +7,7 @@ from web3.exceptions import ContractLogicError
 
 from .config import get_private_key
 from .contracts import ControllerContract, load_response_contract, load_task_contract
+from .nonce_manager import NonceManager
 from .types import ConfirmedResponse, Response
 from .web3_manager import WEB3
 
@@ -161,7 +163,10 @@ def get_task_responses(
 
 def confirm_response(
     response_address: str,
-    private_key: str | None = None,
+    private_key: Optional[str] = None,
+    nonce: Optional[int] = None,
+    auto_fix_nonce: bool = True,
+    max_retries: int = 3,
 ) -> str:
     """
     Confirm a response using the Controller contract.
@@ -169,73 +174,136 @@ def confirm_response(
     Args:
         response_address: The response contract address to confirm
         private_key: Private key for signing the transaction. If None, will use CLIENT_PRIVATE_KEY environment variable.
+        nonce: Optional manual nonce override. If None, will be fetched automatically.
+        auto_fix_nonce: If True, automatically retry on nonce errors (default: True)
+        max_retries: Maximum number of retry attempts on recoverable errors (default: 3)
 
     Returns:
         str: Transaction hash of the confirmation
 
     Raises:
-        Exception: If the confirmation fails
+        Exception: If the confirmation fails after all retries
+
+    Example:
+        >>> from ogpu.client import confirm_response
+        >>> # Normal usage with auto-retry
+        >>> tx_hash = confirm_response(response_address)
+        >>>
+        >>> # Manual nonce override
+        >>> tx_hash = confirm_response(response_address, nonce=42)
     """
     if private_key is None:
         private_key = get_private_key()
 
     # Validate response address format
-    if not WEB3.is_address(response_address):
+    web3 = WEB3()
+    if not web3.is_address(response_address):
         raise ValueError(f"Invalid response address format: {response_address}")
 
     acc = Account.from_key(private_key)
 
+    # Validate response exists (do this once, outside retry loop)
     try:
-        # First, try to validate the response exists and can be confirmed
         response_contract = load_response_contract(response_address)
-
-        # Check if response is already confirmed
-        try:
-            confirmed = response_contract.functions.confirmedFinal().call()
-            if confirmed:
-                raise Exception(f"Response {response_address} is already confirmed")
-        except Exception as e:
-            if "execution reverted" in str(e).lower():
-                raise Exception(
-                    f"Response contract {response_address} may not exist or is invalid"
-                )
-            # If it's another error, continue and let the transaction attempt provide more info
-
-        # Execute the confirmation transaction
-        controller_contract = ControllerContract()
-        web3 = WEB3()
-
-        tx = controller_contract.functions.confirmResponse(
-            response_address
-        ).build_transaction(
-            {
-                "from": acc.address,
-                "nonce": web3.eth.get_transaction_count(acc.address),
-            }
-        )
-
-        signed = web3.eth.account.sign_transaction(tx, private_key)
-        tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
-        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-
-        if receipt["status"] != 1:
-            raise Exception(f"Transaction failed: {tx_hash.hex()}")
-        return tx_hash.hex()
-
-    except ContractLogicError as e:
-        if "execution reverted" in str(e):
-            raise Exception(
-                f"Contract execution reverted. Possible reasons: "
-                f"1) Response {response_address} doesn't exist, "
-                f"2) Already confirmed, "
-                f"3) Caller {acc.address} doesn't have permission to confirm, "
-                f"4) Response is in invalid state for confirmation"
-            )
-        raise Exception(f"Contract logic error: {e}")
+        confirmed = response_contract.functions.confirmedFinal().call()
+        if confirmed:
+            raise Exception(f"Response {response_address} is already confirmed")
     except Exception as e:
         if "execution reverted" in str(e).lower():
             raise Exception(
-                f"Transaction reverted for response {response_address}. "
-                f"Check if the response exists and you have permission to confirm it."
+                f"Response contract {response_address} may not exist or is invalid"
             )
-        raise Exception(f"Error confirming response {response_address}: {e}")
+        # If it's another error, continue and let the transaction attempt provide more info
+
+    # Retry loop for transaction sending
+    for attempt in range(max_retries):
+        try:
+            # Execute the confirmation transaction
+            controller_contract = ControllerContract()
+
+            # Get nonce (manual override or managed)
+            if nonce is not None:
+                tx_nonce = nonce
+            else:
+                tx_nonce = NonceManager.get_nonce(acc.address, web3)
+
+            tx = controller_contract.functions.confirmResponse(
+                response_address
+            ).build_transaction({"from": acc.address, "nonce": tx_nonce})
+
+            signed = web3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+            receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            # Success! Increment nonce if we're managing it
+            if nonce is None:
+                NonceManager.increment_nonce(acc.address, web3)
+
+            if receipt["status"] != 1:
+                raise Exception(f"Transaction failed: {tx_hash.hex()}")
+            return tx_hash.hex()
+
+        except Exception as e:
+            error_msg = str(e).lower()
+
+            # Skip retry logic for contract logic errors (these won't be fixed by retrying)
+            if "execution reverted" in error_msg or isinstance(e, ContractLogicError):
+                raise Exception(
+                    f"Contract execution reverted. Possible reasons: "
+                    f"1) Response {response_address} doesn't exist, "
+                    f"2) Already confirmed, "
+                    f"3) Caller {acc.address} doesn't have permission to confirm, "
+                    f"4) Response is in invalid state for confirmation"
+                )
+
+            # Check if this is a nonce-related error
+            is_nonce_error = any(
+                x in error_msg
+                for x in ["nonce too low", "known transaction", "already known"]
+            )
+
+            # Check if this is a replacement underpriced error
+            is_underpriced = "replacement transaction underpriced" in error_msg
+
+            if is_nonce_error:
+                print(
+                    f"⚠️  Nonce error detected on attempt {attempt + 1}/{max_retries}"
+                )
+
+                if auto_fix_nonce and attempt < max_retries - 1:
+                    print(f"🔧 Auto-fixing nonce...")
+                    from .nonce_utils import fix_nonce
+
+                    fix_nonce(acc.address, private_key)
+                    print(f"🔄 Retrying transaction...")
+                    continue
+                else:
+                    raise Exception(
+                        f"Nonce error after {attempt + 1} attempts: {e}\n"
+                        f"💡 Try calling fix_nonce() to manually resolve this issue."
+                    )
+
+            elif is_underpriced:
+                print(
+                    f"⚠️  Transaction underpriced on attempt {attempt + 1}/{max_retries}"
+                )
+
+                if auto_fix_nonce and attempt < max_retries - 1:
+                    print(
+                        f"⛽ Waiting 5 seconds for gas prices to update and retrying..."
+                    )
+                    time.sleep(5)
+                    NonceManager.reset_nonce(acc.address, web3)
+                    continue
+                else:
+                    raise Exception(
+                        f"Transaction underpriced after {attempt + 1} attempts: {e}\n"
+                        f"💡 Wait a few seconds and try again, or increase gas price."
+                    )
+
+            else:
+                # Not a recoverable error, re-raise immediately
+                raise
+
+    # Max retries exceeded
+    raise Exception(f"Failed to confirm response after {max_retries} attempts")

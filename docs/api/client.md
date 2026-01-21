@@ -236,6 +236,92 @@ for chain in supported_chains:
 ---
 
 
+## Nonce Management (v0.2.0.14+)
+
+!!! success "New in v0.2.0.14"
+    Automatic nonce management with error detection and recovery.
+
+::: ogpu.client.nonce_utils.fix_nonce
+    options:
+      show_source: true
+      heading_level: 3
+      show_root_heading: true
+      show_signature: false
+
+**Purpose:** Fix stuck nonce issues by cancelling pending transactions.
+
+**Example:**
+```python
+from ogpu.client import fix_nonce
+
+# Fix all stuck transactions
+next_nonce = fix_nonce()
+print(f"Ready to send with nonce: {next_nonce}")
+```
+
+---
+
+::: ogpu.client.nonce_utils.get_nonce_info
+    options:
+      show_source: true
+      heading_level: 3
+      show_root_heading: true
+      show_signature: false
+
+**Purpose:** Get detailed nonce information for an address.
+
+**Example:**
+```python
+from ogpu.client import get_nonce_info
+
+info = get_nonce_info()
+if info['has_pending']:
+    print(f"Warning: {info['pending_count']} pending transactions")
+```
+
+---
+
+::: ogpu.client.nonce_utils.reset_nonce_cache
+    options:
+      show_source: true
+      heading_level: 3
+      show_root_heading: true
+      show_signature: false
+
+**Purpose:** Clear SDK nonce cache.
+
+**Example:**
+```python
+from ogpu.client import reset_nonce_cache
+
+reset_nonce_cache()
+# Next transaction fetches fresh nonce
+```
+
+---
+
+::: ogpu.client.nonce_utils.clear_all_nonce_caches
+    options:
+      show_source: true
+      heading_level: 3
+      show_root_heading: true
+      show_signature: false
+
+**Purpose:** Clear all nonce caches for all addresses.
+
+**Example:**
+```python
+from ogpu.client import clear_all_nonce_caches
+
+clear_all_nonce_caches()
+```
+
+!!! tip "Learn More"
+    See the [Nonce Management Guide](../advanced/nonce-management.md) for comprehensive documentation and best practices.
+
+---
+
+
 ## Data Types
 
 ::: ogpu.client.types.ImageEnvironments

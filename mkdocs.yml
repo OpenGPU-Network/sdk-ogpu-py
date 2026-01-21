@@ -103,6 +103,9 @@ nav:
     - Overview: responses/index.md
     - Retrieving: responses/retrieving-responses.md
     - Confirmation: responses/confirming-responses.md
+  - Advanced:
+    - Overview: advanced/index.md
+    - Nonce Management: advanced/nonce-management.md
   - API Reference:
     - ogpu.service: api/service.md
     - ogpu.client: api/client.md

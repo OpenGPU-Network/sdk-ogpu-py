@@ -22,6 +22,7 @@ The OpenGPU SDK is a Python library that enables developers to:
 - **🎯 Simple API**: Intuitive decorators and functions
 - **⚡ High Performance**: Optimized for distributed computing
 - **🔒 Secure**: Blockchain-based verification and payments
+- **🔄 Auto-Retry**: Automatic nonce error detection and recovery (v0.2.0.14+)
 - **📊 Monitoring**: Built-in logging and error tracking
 - **🔧 Flexible**: Support for various AI workloads
 - **📚 Well Documented**: Comprehensive guides and examples
@@ -51,6 +52,7 @@ Or explore the documentation:
 - **[Sources](sources/index.md)** - Learn about creating and deploying services
 - **[Tasks](tasks/index.md)** - Understand task publishing and management
 - **[Responses](responses/index.md)** - Handle and manage task results
+- **[Advanced Topics](advanced/index.md)** - Nonce management, error handling, and best practices
 - **[API Reference](api/service.md)** - Detailed function documentation
 
 ---

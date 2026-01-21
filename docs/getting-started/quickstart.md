@@ -102,6 +102,14 @@ Congratulations! You've successfully:
 - ✅ Created your first OpenGPU task
 - ✅ Published and retrieved task results
 
+### Learn More
+
+**Essential Topics:**
+
+- **[Nonce Management](../advanced/nonce-management.md)** - Handle transaction errors and stuck transactions
+- **[Task Configuration](../tasks/configuration.md)** - Advanced task settings
+- **[Custom Sources](../sources/custom-sources.md)** - Create your own task sources
+
 ### Real-World Examples
 
 Try building these next:
