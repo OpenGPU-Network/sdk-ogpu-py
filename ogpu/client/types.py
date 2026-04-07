@@ -211,14 +211,20 @@ class TaskInput:
     Attributes:
         function_name: Name of the function to call on the source
         data: Input data for the function (Pydantic model or dictionary)
+        **kwargs: Optional extra fields (e.g. campus, sensitivity, metadata)
     """
 
     function_name: str
     data: BaseModel | dict[str, Any]
 
+    def __init__(self, function_name: str, data: BaseModel | dict[str, Any], **kwargs: Any):
+        self.function_name = function_name
+        self.data = data
+        self._extra = kwargs
+
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "function_name": self.function_name,
             "data": (
                 self.data.model_dump()
@@ -226,6 +232,8 @@ class TaskInput:
                 else self.data
             ),
         }
+        result.update(self._extra)
+        return result
 
 
 @dataclass
