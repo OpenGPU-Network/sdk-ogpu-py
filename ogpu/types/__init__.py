@@ -56,12 +56,15 @@ from .errors import (
 from .metadata import (
     ImageEnvironments,
     ResponseParams,
+    ResponseSnapshot,
     SourceInfo,
     SourceMetadata,
     SourceParams,
+    SourceSnapshot,
     TaskInfo,
     TaskInput,
     TaskParams,
+    TaskSnapshot,
 )
 from .receipt import Receipt
 
@@ -123,4 +126,8 @@ __all__ = [
     "SourceInfo",
     "TaskInfo",
     "TaskInput",
+    # Snapshots
+    "SourceSnapshot",
+    "TaskSnapshot",
+    "ResponseSnapshot",
 ]

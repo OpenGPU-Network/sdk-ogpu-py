@@ -34,3 +34,20 @@ def publish_to_ipfs(
     except (json.JSONDecodeError, KeyError) as exc:
         raise IPFSGatewayError(gateway=_IPFS_PUBLISH_URL, status_code=response.status_code) from exc
     return str(link)
+
+
+def fetch_ipfs_json(url: str) -> dict[str, Any]:
+    """Fetch a JSON document from an IPFS gateway URL."""
+    try:
+        response = requests.get(url, timeout=30)
+    except requests.RequestException as exc:
+        raise IPFSFetchError(url=url, reason=str(exc)) from exc
+
+    if response.status_code != 200:
+        raise IPFSGatewayError(gateway=url, status_code=response.status_code)
+
+    try:
+        data: dict[str, Any] = response.json()
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise IPFSFetchError(url=url, reason=f"Invalid JSON: {exc}") from exc
+    return data

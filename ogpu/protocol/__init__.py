@@ -1,9 +1,8 @@
 """Low-level protocol layer — 1:1 mirrors of the OGPU contract ABIs.
 
-Phase 1 ships the scaffolding: ``TxExecutor`` + shared helpers in ``_base``,
-the signer resolver in ``_signer``, and minimal write wrappers on
-``nexus``, ``controller``, and ``terminal``. Instance classes (``Source``,
-``Task``, ``Response``, ``Provider``, ``Master``) land in Phase 2+.
+Instance classes (``Source``, ``Task``, ``Response``) provide live,
+stateless proxies to on-chain contracts. Module-level namespaces
+(``nexus``, ``controller``, ``terminal``) expose singleton contract writes.
 """
 
 from __future__ import annotations
@@ -17,8 +16,15 @@ from ._base import (
     load_contract,
 )
 from ._signer import Signer, resolve_signer
+from .response import Response
+from .source import Source
+from .task import Task
 
 __all__ = [
+    # Instance classes
+    "Source",
+    "Task",
+    "Response",
     # Modules
     "nexus",
     "controller",

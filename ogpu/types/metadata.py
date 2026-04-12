@@ -17,7 +17,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .enums import DeliveryMethod, Environment
+from .enums import DeliveryMethod, Environment, ResponseStatus, SourceStatus, TaskStatus
 
 
 @dataclass
@@ -211,3 +211,42 @@ class TaskInfo:
             expiryTime=self.expiryTime,
             payment=self.payment,
         )
+
+
+# ---------------------------------------------------------------------------
+# Snapshot dataclasses — frozen captures returned by Instance.snapshot()
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SourceSnapshot:
+    address: str
+    client: str
+    status: SourceStatus
+    params: SourceParams
+    task_count: int
+    registrant_count: int
+
+
+@dataclass(frozen=True)
+class TaskSnapshot:
+    address: str
+    source: str
+    status: TaskStatus
+    params: TaskParams
+    payment: int
+    expiry_time: int
+    delivery_method: DeliveryMethod
+    attempt_count: int
+    winning_provider: str | None
+
+
+@dataclass(frozen=True)
+class ResponseSnapshot:
+    address: str
+    task: str
+    params: ResponseParams
+    data: str
+    status: ResponseStatus
+    timestamp: int
+    confirmed: bool
