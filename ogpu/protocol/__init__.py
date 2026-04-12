@@ -1,8 +1,8 @@
 """Low-level protocol layer — 1:1 mirrors of the OGPU contract ABIs.
 
-Instance classes (``Source``, ``Task``, ``Response``) provide live,
-stateless proxies to on-chain contracts. Module-level namespaces
-(``nexus``, ``controller``, ``terminal``) expose singleton contract writes.
+Instance classes (``Source``, ``Task``, ``Response``, ``Provider``, ``Master``)
+provide live, stateless proxies to on-chain contracts. Module-level namespaces
+(``nexus``, ``controller``, ``terminal``, ``vault``) expose singleton writes.
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ from ._base import (
     load_contract,
 )
 from ._signer import Signer, resolve_signer
+from .master import Master
+from .provider import Provider
 from .response import Response
 from .source import Source
 from .task import Task
@@ -25,6 +27,8 @@ __all__ = [
     "Source",
     "Task",
     "Response",
+    "Provider",
+    "Master",
     # Modules
     "nexus",
     "controller",

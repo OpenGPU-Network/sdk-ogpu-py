@@ -55,6 +55,8 @@ from .errors import (
 )
 from .metadata import (
     ImageEnvironments,
+    MasterSnapshot,
+    ProviderSnapshot,
     ResponseParams,
     ResponseSnapshot,
     SourceInfo,
@@ -130,4 +132,6 @@ __all__ = [
     "SourceSnapshot",
     "TaskSnapshot",
     "ResponseSnapshot",
+    "ProviderSnapshot",
+    "MasterSnapshot",
 ]

@@ -250,3 +250,36 @@ class ResponseSnapshot:
     status: ResponseStatus
     timestamp: int
     confirmed: bool
+
+
+@dataclass(frozen=True)
+class ProviderSnapshot:
+    address: str
+    master: str
+    base_data: str
+    live_data: str
+    is_provider: bool
+    default_agent_disabled: bool
+    balance: int
+    lockup: int
+    unbonding: int
+    unbonding_timestamp: int
+    total_earnings: int
+    frozen_payment: int
+    sanction: int
+    is_eligible: bool
+    is_whitelisted: bool
+
+
+@dataclass(frozen=True)
+class MasterSnapshot:
+    address: str
+    provider: str
+    is_master: bool
+    balance: int
+    lockup: int
+    unbonding: int
+    total_earnings: int
+    frozen_payment: int
+    is_eligible: bool
+    is_whitelisted: bool
