@@ -10,11 +10,12 @@ The SDK is split into:
 
 from __future__ import annotations
 
-from . import client, protocol, service, types
+from . import client, events, protocol, service, types
 from .client.chain_config import ChainConfig, ChainId
 
 __all__ = [
     "client",
+    "events",
     "protocol",
     "service",
     "types",
