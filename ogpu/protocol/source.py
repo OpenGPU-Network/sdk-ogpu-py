@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .._ipfs import fetch_ipfs_json
+from ..ipfs import fetch_ipfs_json
 from ..types.enums import Environment, Role, SourceStatus
 from ..types.errors import SourceNotFoundError
 from ..types.metadata import SourceParams, SourceSnapshot

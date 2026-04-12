@@ -17,7 +17,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .enums import DeliveryMethod, Environment, ResponseStatus, SourceStatus, TaskStatus
+from .enums import DeliveryMethod, ResponseStatus, SourceStatus, TaskStatus
 
 
 @dataclass
@@ -141,7 +141,12 @@ class TaskInput:
 
 @dataclass
 class SourceInfo:
-    """User-facing source builder. Publishes metadata to IPFS on conversion."""
+    """User-facing source builder — pure data container.
+
+    The client layer uploads ``imageEnvs`` + display fields to IPFS and
+    assembles the final ``SourceParams`` before calling the contract. This
+    type has no side effects — construct, read, pass along.
+    """
 
     name: str
     description: str
@@ -152,65 +157,19 @@ class SourceInfo:
     maxExpiryDuration: int
     deliveryMethod: DeliveryMethod = DeliveryMethod.MANUAL_CONFIRMATION
 
-    def to_source_params(self, client_address: str) -> SourceParams:
-        """Upload metadata to IPFS and build a ``SourceParams`` for the contract."""
-        from .._ipfs import publish_to_ipfs
-
-        metadata = SourceMetadata(
-            cpu=self.imageEnvs.cpu,
-            nvidia=self.imageEnvs.nvidia,
-            amd=self.imageEnvs.amd,
-            name=self.name,
-            description=self.description,
-            logoUrl=self.logoUrl,
-        )
-        metadata_url = publish_to_ipfs(metadata.to_dict(), "imageMetadata.json", "application/json")
-
-        envs: list[Environment] = []
-        if self.imageEnvs.cpu:
-            envs.append(Environment.CPU)
-        if self.imageEnvs.nvidia:
-            envs.append(Environment.NVIDIA)
-        if self.imageEnvs.amd:
-            envs.append(Environment.AMD)
-
-        combined = 0
-        for env in envs:
-            combined |= env.value
-
-        return SourceParams(
-            client=client_address,
-            imageMetadataUrl=metadata_url,
-            imageEnvironments=combined,
-            minPayment=self.minPayment,
-            minAvailableLockup=self.minAvailableLockup,
-            maxExpiryDuration=self.maxExpiryDuration,
-            privacyEnabled=False,
-            optionalParamsUrl="",
-            deliveryMethod=self.deliveryMethod.value,
-            lastUpdateTime=int(time.time()),
-        )
-
 
 @dataclass
 class TaskInfo:
-    """User-facing task builder. Publishes config to IPFS on conversion."""
+    """User-facing task builder — pure data container.
+
+    The client layer uploads ``config`` to IPFS and assembles the final
+    ``TaskParams`` before calling the contract. This type has no side effects.
+    """
 
     source: str
     config: TaskInput
     expiryTime: int
     payment: int
-
-    def to_task_params(self) -> TaskParams:
-        from .._ipfs import publish_to_ipfs
-
-        config_url = publish_to_ipfs(self.config.to_dict(), "taskConfig.json", "application/json")
-        return TaskParams(
-            source=self.source,
-            config=config_url,
-            expiryTime=self.expiryTime,
-            payment=self.payment,
-        )
 
 
 # ---------------------------------------------------------------------------

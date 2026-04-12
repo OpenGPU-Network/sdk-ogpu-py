@@ -1,4 +1,8 @@
-"""Private IPFS helper — used by metadata builders to publish off-chain content."""
+"""Upload off-chain content to the OGPU IPFS pinning service.
+
+The publish endpoint is OGPU-specific (``capi.ogpuscan.io``). It returns a
+gateway URL that any standard IPFS gateway can resolve.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +11,7 @@ from typing import Any
 
 import requests
 
-from .types.errors import IPFSFetchError, IPFSGatewayError
+from ..types.errors import IPFSFetchError, IPFSGatewayError
 
 _IPFS_PUBLISH_URL = "https://capi.ogpuscan.io/file/create"
 
@@ -17,7 +21,11 @@ def publish_to_ipfs(
     filename: str = "data.json",
     content_type: str = "application/json",
 ) -> str:
-    """Publish data to IPFS and return the resulting link."""
+    """Publish ``data`` (string or JSON-serializable dict) to IPFS.
+
+    Returns the resulting gateway URL. Raises ``IPFSFetchError`` on network
+    failure, ``IPFSGatewayError`` on non-success status or malformed response.
+    """
     content = json.dumps(data) if isinstance(data, dict) else data
     files = {"file": (filename, content, content_type)}
 
@@ -34,20 +42,3 @@ def publish_to_ipfs(
     except (json.JSONDecodeError, KeyError) as exc:
         raise IPFSGatewayError(gateway=_IPFS_PUBLISH_URL, status_code=response.status_code) from exc
     return str(link)
-
-
-def fetch_ipfs_json(url: str) -> dict[str, Any]:
-    """Fetch a JSON document from an IPFS gateway URL."""
-    try:
-        response = requests.get(url, timeout=30)
-    except requests.RequestException as exc:
-        raise IPFSFetchError(url=url, reason=str(exc)) from exc
-
-    if response.status_code != 200:
-        raise IPFSGatewayError(gateway=url, status_code=response.status_code)
-
-    try:
-        data: dict[str, Any] = response.json()
-    except (json.JSONDecodeError, ValueError) as exc:
-        raise IPFSFetchError(url=url, reason=f"Invalid JSON: {exc}") from exc
-    return data

@@ -3,14 +3,13 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from eth_account import Account
 from web3.exceptions import ContractLogicError
 
 from ogpu.protocol._base import (
+    _DEFAULT_CHUNK_SIZE,
     REVERT_PATTERN_MAP,
     ZERO_ADDRESS,
     TxExecutor,
-    _DEFAULT_CHUNK_SIZE,
     _extract_revert_reason,
     _paginated_call,
     _permission_error_for,

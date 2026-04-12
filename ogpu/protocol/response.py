@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from ..ipfs import fetch_ipfs_json
 from ..types.enums import ResponseStatus
 from ..types.errors import ResponseNotFoundError
 from ..types.metadata import ResponseParams, ResponseSnapshot
@@ -58,7 +59,18 @@ class Response:
         )
 
     def get_data(self) -> str:
+        """Return the raw ``data`` field from ``ResponseParams`` (usually an IPFS URL)."""
         return str(self.get_params().data)
+
+    def fetch_data(self) -> dict[str, Any]:
+        """Fetch and parse the off-chain response payload as JSON.
+
+        ``get_data`` returns the URL string; ``fetch_data`` actually follows
+        it and parses the JSON body. Raises ``IPFSFetchError`` / ``IPFSGatewayError``
+        on network failure. Use ``get_data`` if you need the raw URL (for
+        caching, custom decoding, binary payloads, etc.).
+        """
+        return fetch_ipfs_json(self.get_data())
 
     def get_status(self) -> ResponseStatus:
         return ResponseStatus(self._contract().functions.getStatus().call())

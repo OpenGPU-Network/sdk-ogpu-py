@@ -13,8 +13,10 @@ longer work — see the v0.2.1 CHANGELOG.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
+from ..ipfs import publish_to_ipfs
 from ..protocol._signer import resolve_signer
 from ..protocol.response import Response
 from ..protocol.source import Source
@@ -27,12 +29,59 @@ from ..types import (
     Role,
     SourceInfo,
     SourceMetadata,
+    SourceParams,
     TaskInfo,
     TaskInput,
+    TaskParams,
     combine_environments,
     environment_names,
     parse_environments,
 )
+
+
+def _build_source_params(info: SourceInfo, client_address: str) -> SourceParams:
+    """Upload metadata to IPFS and assemble a SourceParams tuple."""
+    metadata = SourceMetadata(
+        cpu=info.imageEnvs.cpu,
+        nvidia=info.imageEnvs.nvidia,
+        amd=info.imageEnvs.amd,
+        name=info.name,
+        description=info.description,
+        logoUrl=info.logoUrl,
+    )
+    metadata_url = publish_to_ipfs(metadata.to_dict(), "imageMetadata.json", "application/json")
+
+    combined = 0
+    if info.imageEnvs.cpu:
+        combined |= Environment.CPU.value
+    if info.imageEnvs.nvidia:
+        combined |= Environment.NVIDIA.value
+    if info.imageEnvs.amd:
+        combined |= Environment.AMD.value
+
+    return SourceParams(
+        client=client_address,
+        imageMetadataUrl=metadata_url,
+        imageEnvironments=combined,
+        minPayment=info.minPayment,
+        minAvailableLockup=info.minAvailableLockup,
+        maxExpiryDuration=info.maxExpiryDuration,
+        privacyEnabled=False,
+        optionalParamsUrl="",
+        deliveryMethod=info.deliveryMethod.value,
+        lastUpdateTime=int(time.time()),
+    )
+
+
+def _build_task_params(info: TaskInfo) -> TaskParams:
+    """Upload task config to IPFS and assemble a TaskParams tuple."""
+    config_url = publish_to_ipfs(info.config.to_dict(), "taskConfig.json", "application/json")
+    return TaskParams(
+        source=info.source,
+        config=config_url,
+        expiryTime=info.expiryTime,
+        payment=info.payment,
+    )
 
 
 def publish_source(
@@ -45,7 +94,7 @@ def publish_source(
     from ..protocol.nexus import publish_source as _publish_source
 
     account = resolve_signer(private_key, role=Role.CLIENT)
-    params = source_info.to_source_params(account.address)
+    params = _build_source_params(source_info, account.address)
     receipt = _publish_source(params, signer=account)
     addr = extract_source_address(receipt)
     return Source(addr)
@@ -61,7 +110,7 @@ def publish_task(
     from ..protocol.controller import publish_task as _publish_task
 
     account = resolve_signer(private_key, role=Role.CLIENT)
-    params = task_info.to_task_params()
+    params = _build_task_params(task_info)
     receipt = _publish_task(params, signer=account)
     addr = extract_task_address(receipt)
     return Task(addr)
@@ -125,7 +174,7 @@ def update_source(
     from ..protocol.nexus import update_source as _update_source
 
     account = resolve_signer(private_key, role=Role.CLIENT)
-    params = new_info.to_source_params(account.address)
+    params = _build_source_params(new_info, account.address)
     return _update_source(str(source), params, signer=account)
 
 

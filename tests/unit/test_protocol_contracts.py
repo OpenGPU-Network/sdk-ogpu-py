@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from eth_account import Account
 
 from ogpu.protocol import controller, nexus, terminal
 from ogpu.types.errors import InvalidSignerError

@@ -71,6 +71,17 @@ class TestResponseReads:
         with p:
             assert r.get_data() == "payload"
 
+    def test_fetch_data_follows_url_and_parses_json(self):
+        c = _mc(getResponseParams=("0xT", "0xP", "https://ipfs.example/Qm123", 0))
+        r, p = self._r(c)
+        with p, patch(
+            "ogpu.protocol.response.fetch_ipfs_json",
+            return_value={"result": 42, "logs": ["step1", "step2"]},
+        ) as fetch_mock:
+            payload = r.fetch_data()
+        assert payload == {"result": 42, "logs": ["step1", "step2"]}
+        fetch_mock.assert_called_once_with("https://ipfs.example/Qm123")
+
     def test_get_status(self):
         c = _mc(getStatus=0)
         r, p = self._r(c)

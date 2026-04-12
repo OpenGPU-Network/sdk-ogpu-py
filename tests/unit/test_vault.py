@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ogpu.protocol import vault
-from ogpu.types.errors import MissingSignerError
 from ogpu.types.receipt import Receipt
 
 _KEY = "0x" + "11" * 32

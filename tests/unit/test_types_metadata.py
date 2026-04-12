@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
 from pydantic import BaseModel
 
-from ogpu.types.enums import DeliveryMethod, Environment
+from ogpu.types.enums import DeliveryMethod
 from ogpu.types.metadata import (
     ImageEnvironments,
     ResponseParams,
@@ -105,12 +103,9 @@ class TestTaskInput:
         assert out["sensitivity"] == "high"
 
 
-class TestSourceInfoConversion:
-    def test_to_source_params(self, monkeypatch):
-        monkeypatch.setattr(
-            "ogpu._ipfs.publish_to_ipfs",
-            lambda data, filename="", content_type="": "ipfs://FAKE",
-        )
+class TestSourceInfoIsPureDataclass:
+    def test_has_no_to_source_params_method(self):
+        """SourceInfo must not trigger network I/O on construction or conversion."""
         info = SourceInfo(
             name="demo",
             description="desc",
@@ -121,44 +116,15 @@ class TestSourceInfoConversion:
             maxExpiryDuration=3600,
             deliveryMethod=DeliveryMethod.FIRST_RESPONSE,
         )
-        params = info.to_source_params(client_address="0xCLIENT")
-        assert params.client == "0xCLIENT"
-        assert params.imageMetadataUrl == "ipfs://FAKE"
-        assert params.imageEnvironments == Environment.CPU.value
-        assert params.deliveryMethod == DeliveryMethod.FIRST_RESPONSE.value
-
-    def test_to_source_params_all_envs(self, monkeypatch):
-        monkeypatch.setattr(
-            "ogpu._ipfs.publish_to_ipfs",
-            lambda *a, **kw: "ipfs://X",
-        )
-        info = SourceInfo(
-            name="a",
-            description="b",
-            logoUrl="c",
-            imageEnvs=ImageEnvironments(cpu="1", nvidia="2", amd="3"),
-            minPayment=1,
-            minAvailableLockup=0,
-            maxExpiryDuration=60,
-        )
-        params = info.to_source_params("0xC")
-        assert params.imageEnvironments == 7  # CPU | NVIDIA | AMD
+        assert not hasattr(info, "to_source_params")
 
 
-class TestTaskInfoConversion:
-    def test_to_task_params(self, monkeypatch):
-        monkeypatch.setattr(
-            "ogpu._ipfs.publish_to_ipfs",
-            lambda *a, **kw: "ipfs://CONFIG",
-        )
+class TestTaskInfoIsPureDataclass:
+    def test_has_no_to_task_params_method(self):
         ti = TaskInfo(
             source="0xSRC",
             config=TaskInput(function_name="predict", data={"x": 1}),
             expiryTime=1000,
             payment=42,
         )
-        tp = ti.to_task_params()
-        assert tp.source == "0xSRC"
-        assert tp.config == "ipfs://CONFIG"
-        assert tp.expiryTime == 1000
-        assert tp.payment == 42
+        assert not hasattr(ti, "to_task_params")

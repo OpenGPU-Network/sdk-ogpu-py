@@ -28,7 +28,7 @@ class TestCancelTask:
 
 class TestUpdateSource:
     def test_returns_receipt(self, monkeypatch):
-        monkeypatch.setattr("ogpu._ipfs.publish_to_ipfs", lambda *a, **kw: "ipfs://X")
+        monkeypatch.setattr("ogpu.client.publish_to_ipfs", lambda *a, **kw: "ipfs://X")
         info = SourceInfo(
             name="x", description="y", logoUrl="z",
             imageEnvs=ImageEnvironments(cpu="c"),

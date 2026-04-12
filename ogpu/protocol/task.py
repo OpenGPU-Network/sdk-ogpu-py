@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .._ipfs import fetch_ipfs_json
+from ..ipfs import fetch_ipfs_json
 from ..types.enums import DeliveryMethod, TaskStatus
 from ..types.errors import TaskNotFoundError
 from ..types.metadata import TaskParams, TaskSnapshot
