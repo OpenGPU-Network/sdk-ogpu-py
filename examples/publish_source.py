@@ -20,11 +20,12 @@ source_info = SourceInfo(
     ),
     minPayment=Web3.to_wei(0.01, "ether"),
     minAvailableLockup=Web3.to_wei(0, "ether"),
-    maxExpiryDuration=86400,  # 24 hour in seconds
+    maxExpiryDuration=86400,
     deliveryMethod=DeliveryMethod.FIRST_RESPONSE,
 )
 
-# Publish the source
-source_address = publish_source(source_info=source_info)
+source = publish_source(source_info=source_info)
 
-print(f"Source published at: {source_address}")
+print(f"Source published at: {source.address}")
+print(f"Status: {source.get_status()}")
+print(f"Client: {source.get_client()}")
