@@ -7,7 +7,7 @@ stateless proxies to on-chain contracts. Module-level namespaces
 
 from __future__ import annotations
 
-from . import controller, nexus, terminal
+from . import controller, nexus, terminal, vault
 from ._base import (
     REVERT_PATTERN_MAP,
     ZERO_ADDRESS,
@@ -29,6 +29,7 @@ __all__ = [
     "nexus",
     "controller",
     "terminal",
+    "vault",
     # Shared infrastructure
     "TxExecutor",
     "ZERO_ADDRESS",

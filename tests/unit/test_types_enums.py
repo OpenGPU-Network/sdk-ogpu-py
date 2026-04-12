@@ -16,18 +16,19 @@ from ogpu.types.enums import (
 class TestStatusEnums:
     def test_task_status_values(self):
         assert TaskStatus.NEW == 0
-        assert TaskStatus.FINALIZED == 1
-        assert TaskStatus.CANCELED == 2
-        assert int(TaskStatus.NEW) == 0
+        assert TaskStatus.ATTEMPTED == 1
+        assert TaskStatus.RESPONDED == 2
+        assert TaskStatus.CANCELED == 3
+        assert TaskStatus.EXPIRED == 4
+        assert TaskStatus.FINALIZED == 5
 
     def test_source_status_values(self):
         assert SourceStatus.ACTIVE == 0
         assert SourceStatus.INACTIVE == 1
 
     def test_response_status_values(self):
-        assert ResponseStatus.PENDING == 0
+        assert ResponseStatus.SUBMITTED == 0
         assert ResponseStatus.CONFIRMED == 1
-        assert ResponseStatus.REJECTED == 2
 
     def test_status_enums_compare_to_ints(self):
         assert TaskStatus.NEW == 0

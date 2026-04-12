@@ -53,6 +53,7 @@ _SINGLETON_ABI_TO_KEY: dict[str, str] = {
     "NexusAbi": "NEXUS",
     "ControllerAbi": "CONTROLLER",
     "TerminalAbi": "TERMINAL",
+    "VaultAbi": "VAULT",
 }
 
 

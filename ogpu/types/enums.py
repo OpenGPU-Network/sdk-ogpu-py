@@ -12,11 +12,14 @@ from enum import Enum, IntEnum, IntFlag
 
 
 class TaskStatus(IntEnum):
-    """Lifecycle state of a Task contract."""
+    """Lifecycle state of a Task contract. Order matches Solidity enum."""
 
     NEW = 0
-    FINALIZED = 1
-    CANCELED = 2
+    ATTEMPTED = 1
+    RESPONDED = 2
+    CANCELED = 3
+    EXPIRED = 4
+    FINALIZED = 5
 
 
 class SourceStatus(IntEnum):
@@ -29,9 +32,8 @@ class SourceStatus(IntEnum):
 class ResponseStatus(IntEnum):
     """Lifecycle state of a Response contract."""
 
-    PENDING = 0
+    SUBMITTED = 0
     CONFIRMED = 1
-    REJECTED = 2
 
 
 class Environment(IntFlag):
