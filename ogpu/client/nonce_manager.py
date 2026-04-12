@@ -6,7 +6,6 @@ nonce collisions and stuck transactions in the OGPU SDK.
 """
 
 import threading
-from typing import Dict, Optional
 
 from web3 import Web3
 
@@ -22,8 +21,8 @@ class NonceManager:
     4. Offering manual reset capabilities for stuck transaction recovery
     """
 
-    _nonces: Dict[str, int] = {}
-    _locks: Dict[str, threading.Lock] = {}
+    _nonces: dict[str, int] = {}
+    _locks: dict[str, threading.Lock] = {}
     _global_lock = threading.Lock()
 
     @classmethod
@@ -35,9 +34,7 @@ class NonceManager:
             return cls._locks[address]
 
     @classmethod
-    def get_nonce(
-        cls, address: str, web3: Web3, force_refresh: bool = False
-    ) -> int:
+    def get_nonce(cls, address: str, web3: Web3, force_refresh: bool = False) -> int:
         """
         Get the next nonce for an address.
 
@@ -114,7 +111,7 @@ class NonceManager:
             cls._locks.clear()
 
     @classmethod
-    def get_cached_nonce(cls, address: str, web3: Web3) -> Optional[int]:
+    def get_cached_nonce(cls, address: str, web3: Web3) -> int | None:
         """
         Get the cached nonce without fetching from blockchain.
 

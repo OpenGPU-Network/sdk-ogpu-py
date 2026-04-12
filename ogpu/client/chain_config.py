@@ -1,26 +1,37 @@
+"""Chain selection and RPC configuration.
+
+``ChainConfig`` is a process-wide global that holds the currently active
+chain, the RPC URL for each chain, and the ABI/contract-address mappings.
+Default chain is ``OGPU_MAINNET`` (flipped from TESTNET in v0.2.1 per
+decision F1 / N3).
+
+Users who want a different RPC endpoint (private node, local fork) call
+``ChainConfig.set_rpc(url)`` — this delegates to ``Web3Manager.update_rpc_url``
+and invalidates the cached Web3 instance so the next call reconnects.
+"""
+
+from __future__ import annotations
+
 import json
 import os
 from enum import Enum
-from typing import Dict, Optional
+
+from web3 import Web3
+
+from ..types.errors import ChainNotSupportedError, InvalidRpcUrlError
 
 
 class ChainId(Enum):
-    """Enum for supported blockchain networks.
-
-    Attributes:
-        OGPU_MAINNET: Main OpenGPU network (Chain ID: 1071)
-        OGPU_TESTNET: Test OpenGPU network (Chain ID: 200820172034)
-    """
+    """Supported blockchain networks."""
 
     OGPU_MAINNET = 1071
     OGPU_TESTNET = 200820172034
 
 
 class ChainConfig:
-    """Manages chain-specific configuration and contract addresses"""
+    """Global chain configuration. Thread-safe for read-mostly workloads."""
 
-    # Contract addresses for each chain
-    CHAIN_CONTRACTS: Dict[ChainId, Dict[str, str]] = {
+    CHAIN_CONTRACTS: dict[ChainId, dict[str, str]] = {
         ChainId.OGPU_TESTNET: {
             "NEXUS": "0xF87bb2f3edB991a998992f14d35fE142e6Bb50b1",
             "CONTROLLER": "0x9fb6022074Fd7Bdb429de0776eb693cA0CB55E09",
@@ -33,85 +44,122 @@ class ChainConfig:
         },
     }
 
-    # Chain directory mapping
-    CHAIN_DIRECTORIES: Dict[ChainId, str] = {
+    CHAIN_DIRECTORIES: dict[ChainId, str] = {
         ChainId.OGPU_TESTNET: "testnet",
         ChainId.OGPU_MAINNET: "mainnet",
     }
 
-    _current_chain: Optional[ChainId] = ChainId.OGPU_TESTNET
-    _loaded_abis: Dict[ChainId, Dict[str, dict]] = {}
+    _DEFAULT_RPC_URLS: dict[ChainId, str] = {
+        ChainId.OGPU_MAINNET: "https://mainnet-rpc.ogpuscan.io",
+        ChainId.OGPU_TESTNET: "https://testnetrpc.ogpuscan.io",
+    }
+
+    _current_chain: ChainId | None = ChainId.OGPU_MAINNET
+    _loaded_abis: dict[ChainId, dict[str, object]] = {}
+
+    # ------------------------------------------------------------------ #
+    # Chain selection
+    # ------------------------------------------------------------------ #
 
     @classmethod
     def set_chain(cls, chain_id: ChainId) -> None:
-        """Set the current active chain"""
+        """Switch the globally-active chain."""
         if chain_id not in cls.CHAIN_CONTRACTS:
-            raise ValueError(f"Chain {chain_id} is not supported")
+            raise ChainNotSupportedError(chain_id=chain_id)
         cls._current_chain = chain_id
 
     @classmethod
     def get_current_chain(cls) -> ChainId:
-        """Get the current active chain"""
         if cls._current_chain is None:
-            raise ValueError("No chain has been set. Call set_chain() first.")
+            raise ChainNotSupportedError(chain_id=None)
         return cls._current_chain
 
     @classmethod
     def get_contract_address(cls, contract_name: str) -> str:
-        """Get contract address for the current chain"""
-        current_chain = cls.get_current_chain()
-
-        if current_chain not in cls.CHAIN_CONTRACTS:
-            raise ValueError(f"Chain {current_chain} is not configured")
-
-        chain_contracts = cls.CHAIN_CONTRACTS[current_chain]
-        if contract_name not in chain_contracts:
-            raise ValueError(
-                f"Contract {contract_name} not found for chain {current_chain}"
-            )
-
-        return chain_contracts[contract_name]
+        current = cls.get_current_chain()
+        if current not in cls.CHAIN_CONTRACTS:
+            raise ChainNotSupportedError(chain_id=current)
+        contracts = cls.CHAIN_CONTRACTS[current]
+        if contract_name not in contracts:
+            raise ValueError(f"Contract {contract_name} not configured for chain {current}")
+        return contracts[contract_name]
 
     @classmethod
     def get_all_supported_chains(cls) -> list[ChainId]:
-        """Get list of all supported chains"""
         return list(cls.CHAIN_CONTRACTS.keys())
+
+    # ------------------------------------------------------------------ #
+    # ABI loading
+    # ------------------------------------------------------------------ #
 
     @classmethod
     def get_chain_abi_directory(cls) -> str:
-        """Get the ABI directory path for the current chain"""
-        current_chain = cls.get_current_chain()
-        if current_chain not in cls.CHAIN_DIRECTORIES:
-            raise ValueError(f"Chain directory not configured for {current_chain}")
-
+        current = cls.get_current_chain()
+        if current not in cls.CHAIN_DIRECTORIES:
+            raise ChainNotSupportedError(chain_id=current)
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(current_dir, "abis", cls.CHAIN_DIRECTORIES[current_chain])
+        return os.path.join(current_dir, "abis", cls.CHAIN_DIRECTORIES[current])
 
     @classmethod
-    def load_abi(cls, abi_name: str) -> dict:
-        """Load ABI for the current chain"""
-        current_chain = cls.get_current_chain()
+    def load_abi(cls, abi_name: str) -> object:
+        current = cls.get_current_chain()
+        if current in cls._loaded_abis and abi_name in cls._loaded_abis[current]:
+            return cls._loaded_abis[current][abi_name]
 
-        # Check if ABI is already loaded for this chain
-        if (
-            current_chain in cls._loaded_abis
-            and abi_name in cls._loaded_abis[current_chain]
-        ):
-            return cls._loaded_abis[current_chain][abi_name]
+        abi_path = os.path.join(cls.get_chain_abi_directory(), f"{abi_name}.json")
+        if not os.path.exists(abi_path):
+            raise FileNotFoundError(f"ABI file not found: {abi_path}")
 
-        # Load ABI from file
-        abi_dir = cls.get_chain_abi_directory()
-        abi_file_path = os.path.join(abi_dir, f"{abi_name}.json")
+        with open(abi_path) as fh:
+            abi_data: object = json.load(fh)
 
-        if not os.path.exists(abi_file_path):
-            raise FileNotFoundError(f"ABI file not found: {abi_file_path}")
-
-        with open(abi_file_path, "r") as f:
-            abi_data = json.load(f)
-
-        # Cache the loaded ABI
-        if current_chain not in cls._loaded_abis:
-            cls._loaded_abis[current_chain] = {}
-        cls._loaded_abis[current_chain][abi_name] = abi_data
-
+        cls._loaded_abis.setdefault(current, {})[abi_name] = abi_data
         return abi_data
+
+    # ------------------------------------------------------------------ #
+    # RPC configuration (new in v0.2.1 — decision F2)
+    # ------------------------------------------------------------------ #
+
+    @classmethod
+    def set_rpc(cls, url: str, chain: ChainId | None = None) -> None:
+        """Override the RPC URL for a given chain (default: current chain).
+
+        Validates connectivity via ``Web3.is_connected`` before committing.
+        Raises ``InvalidRpcUrlError`` if the URL is unreachable or invalid.
+        Invalidates any cached Web3 instance so the next call reconnects.
+        """
+        target = chain if chain is not None else cls.get_current_chain()
+        if target not in cls.CHAIN_CONTRACTS:
+            raise ChainNotSupportedError(chain_id=target)
+
+        probe = Web3(Web3.HTTPProvider(url))
+        try:
+            reachable = probe.is_connected()
+        except Exception as exc:  # noqa: BLE001 — treated as unreachable
+            raise InvalidRpcUrlError(url=url) from exc
+        if not reachable:
+            raise InvalidRpcUrlError(url=url)
+
+        from .web3_manager import Web3Manager
+
+        Web3Manager.update_rpc_url(target, url)
+
+    @classmethod
+    def get_rpc(cls, chain: ChainId | None = None) -> str:
+        """Return the current RPC URL for a chain (current chain if omitted)."""
+        target = chain if chain is not None else cls.get_current_chain()
+        if target not in cls.CHAIN_CONTRACTS:
+            raise ChainNotSupportedError(chain_id=target)
+        from .config import CHAIN_RPC_URLS
+
+        return CHAIN_RPC_URLS[target]
+
+    @classmethod
+    def reset_rpc(cls, chain: ChainId | None = None) -> None:
+        """Restore the built-in default RPC URL for a chain."""
+        target = chain if chain is not None else cls.get_current_chain()
+        if target not in cls._DEFAULT_RPC_URLS:
+            raise ChainNotSupportedError(chain_id=target)
+        from .web3_manager import Web3Manager
+
+        Web3Manager.update_rpc_url(target, cls._DEFAULT_RPC_URLS[target])

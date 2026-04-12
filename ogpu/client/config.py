@@ -1,7 +1,5 @@
-import json
 import os
 from pathlib import Path
-from typing import Dict
 
 from dotenv import load_dotenv
 
@@ -31,7 +29,7 @@ def _load_environment():
 _load_environment()
 
 # Chain-specific RPC URLs
-CHAIN_RPC_URLS: Dict[ChainId, str] = {
+CHAIN_RPC_URLS: dict[ChainId, str] = {
     ChainId.OGPU_MAINNET: "https://mainnet-rpc.ogpuscan.io",
     ChainId.OGPU_TESTNET: "https://testnetrpc.ogpuscan.io",
 }

@@ -6,7 +6,6 @@ transaction failures.
 """
 
 import time
-from typing import Optional
 
 from eth_account import Account
 
@@ -15,7 +14,7 @@ from .nonce_manager import NonceManager
 from .web3_manager import WEB3
 
 
-def fix_nonce(address: Optional[str] = None, private_key: Optional[str] = None) -> int:
+def fix_nonce(address: str | None = None, private_key: str | None = None) -> int:
     """
     Fix stuck nonce issues by canceling pending transactions.
 
@@ -64,15 +63,13 @@ def fix_nonce(address: Optional[str] = None, private_key: Optional[str] = None) 
     if pending_nonce > mined_nonce:
         stuck_count = pending_nonce - mined_nonce
         print(f"   ⚠️  {stuck_count} pending transaction(s) detected!")
-        print(f"   🗑️  Attempting to cancel stuck transactions...")
+        print("   🗑️  Attempting to cancel stuck transactions...")
 
         # Cancel each stuck transaction
         success_count = 0
         for nonce in range(mined_nonce, pending_nonce):
             try:
-                tx_hash = _cancel_transaction_with_nonce(
-                    address, nonce, private_key, web3
-                )
+                tx_hash = _cancel_transaction_with_nonce(address, nonce, private_key, web3)
                 print(f"      ✅ Cancelled nonce {nonce} (tx: {tx_hash[:10]}...)")
                 success_count += 1
                 time.sleep(0.5)  # Small delay between cancellations
@@ -81,17 +78,17 @@ def fix_nonce(address: Optional[str] = None, private_key: Optional[str] = None) 
 
         if success_count > 0:
             print(f"   ✅ Successfully cancelled {success_count} transaction(s)")
-            print(f"   ⏳ Waiting 3 seconds for cancellations to propagate...")
+            print("   ⏳ Waiting 3 seconds for cancellations to propagate...")
             time.sleep(3)
         else:
-            print(f"   ⚠️  Could not cancel any transactions automatically")
-            print(f"   💡 They may resolve naturally or you may need to wait")
+            print("   ⚠️  Could not cancel any transactions automatically")
+            print("   💡 They may resolve naturally or you may need to wait")
     else:
-        print(f"   ✅ No pending transactions found")
+        print("   ✅ No pending transactions found")
 
     # Clear SDK internal cache
     NonceManager.reset_nonce(address, web3)
-    print(f"   🧹 SDK nonce cache cleared")
+    print("   🧹 SDK nonce cache cleared")
 
     # Get fresh nonce
     final_nonce = web3.eth.get_transaction_count(address, "pending")
@@ -100,9 +97,7 @@ def fix_nonce(address: Optional[str] = None, private_key: Optional[str] = None) 
     return final_nonce
 
 
-def _cancel_transaction_with_nonce(
-    address: str, nonce: int, private_key: str, web3
-) -> str:
+def _cancel_transaction_with_nonce(address: str, nonce: int, private_key: str, web3) -> str:
     """
     Cancel a pending transaction by replacing it with a 0 ETH self-transfer.
 
@@ -142,9 +137,7 @@ def _cancel_transaction_with_nonce(
     return tx_hash.hex()
 
 
-def reset_nonce_cache(
-    address: Optional[str] = None, private_key: Optional[str] = None
-) -> None:
+def reset_nonce_cache(address: str | None = None, private_key: str | None = None) -> None:
     """
     Reset the SDK's internal nonce cache without canceling transactions.
 
@@ -189,9 +182,7 @@ def clear_all_nonce_caches() -> None:
     print("✅ All nonce caches cleared")
 
 
-def get_nonce_info(
-    address: Optional[str] = None, private_key: Optional[str] = None
-) -> dict:
+def get_nonce_info(address: str | None = None, private_key: str | None = None) -> dict:
     """
     Get detailed nonce information for an address.
 

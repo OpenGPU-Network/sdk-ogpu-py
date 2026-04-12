@@ -1,5 +1,3 @@
-from typing import Dict, Optional
-
 from web3 import Web3
 
 from .chain_config import ChainConfig, ChainId
@@ -8,10 +6,10 @@ from .chain_config import ChainConfig, ChainId
 class Web3Manager:
     """Manages Web3 instances for different chains"""
 
-    _web3_instances: Dict[ChainId, Web3] = {}
+    _web3_instances: dict[ChainId, Web3] = {}
 
     @classmethod
-    def get_web3_instance(cls, chain_id: Optional[ChainId] = None) -> Web3:
+    def get_web3_instance(cls, chain_id: ChainId | None = None) -> Web3:
         """Get Web3 instance for specified chain or current chain"""
         if chain_id is None:
             chain_id = ChainConfig.get_current_chain()
@@ -27,9 +25,7 @@ class Web3Manager:
         web3_instance = Web3(Web3.HTTPProvider(rpc_url))
 
         if not web3_instance.is_connected():
-            raise ConnectionError(
-                f"Failed to connect to {chain_id.name} node at {rpc_url}"
-            )
+            raise ConnectionError(f"Failed to connect to {chain_id.name} node at {rpc_url}")
 
         cls._web3_instances[chain_id] = web3_instance
         return web3_instance
