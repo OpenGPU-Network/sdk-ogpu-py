@@ -5,6 +5,7 @@
 ### New Features
 
 - **Chain package** (`ogpu.chain`) — new top-level home for `ChainConfig`, `ChainId`, `Web3Manager`, `NonceManager`, ABI files, and RPC URL config. Role-agnostic, used by every SDK module. `from ogpu import ChainConfig` ergonomically re-exports the public surface.
+- **Agent package** (`ogpu.agent`) — high-level wrappers for the agent scheduler role: `register_to`, `unregister_from`, `attempt`. Each signs with the agent's key and passes the target provider address explicitly. Uses `AGENT_PRIVATE_KEY` env var fallback via new `Role.AGENT`. `submit_response` is intentionally absent — agents schedule work, they don't produce responses. Master and Provider high-level wrappers are NOT added in v0.2.1 — the existing `Master(addr)` / `Provider(addr)` synthetic classes already cover those roles cleanly.
 - **Protocol layer** (`ogpu.protocol`) — low-level, 1:1 wrappers for every user-callable contract function across Nexus, Controller, Terminal, and Vault
 - **Instance classes** — `Source`, `Task`, `Response`, `Provider`, `Master` as live stateless proxies bound to contract addresses, with full read + write methods and `snapshot()` batch capture
 - **Vault module** (`ogpu.protocol.vault`) — deposit, withdraw, lock, unbond, cancel_unbonding, claim + all view functions. Previously 0% coverage from Python

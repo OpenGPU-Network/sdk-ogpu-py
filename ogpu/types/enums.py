@@ -52,11 +52,17 @@ class DeliveryMethod(Enum):
 
 
 class Role(Enum):
-    """Role used by the signer resolver to pick the right ``*_PRIVATE_KEY`` env var."""
+    """Role used by the signer resolver to pick the right ``*_PRIVATE_KEY`` env var.
+
+    Agents are not principals in the agent-delegation model (per PRD N1) but
+    still need an env-var slot for the ``ogpu.agent`` high-level wrappers that
+    sign as an authorized delegate of a master or client. Reads ``AGENT_PRIVATE_KEY``.
+    """
 
     CLIENT = "client"
     PROVIDER = "provider"
     MASTER = "master"
+    AGENT = "agent"
 
 
 def combine_environments(*environments: Environment) -> int:
