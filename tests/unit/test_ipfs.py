@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ogpu._ipfs import publish_to_ipfs
+from ogpu._ipfs import fetch_ipfs_json, publish_to_ipfs
 from ogpu.types.errors import IPFSFetchError, IPFSGatewayError
 
 
@@ -63,3 +63,36 @@ class TestPublishToIpfs:
         with patch("ogpu._ipfs.requests.post", return_value=resp):
             with pytest.raises(IPFSGatewayError):
                 publish_to_ipfs({"k": "v"})
+
+
+class TestFetchIpfsJson:
+    def test_success(self):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {"name": "demo", "cpu": "x"}
+        with patch("ogpu._ipfs.requests.get", return_value=resp):
+            data = fetch_ipfs_json("https://ipfs.example/Qm123")
+        assert data["name"] == "demo"
+
+    def test_network_error(self):
+        import requests
+
+        with patch("ogpu._ipfs.requests.get", side_effect=requests.ConnectionError("fail")):
+            with pytest.raises(IPFSFetchError):
+                fetch_ipfs_json("https://ipfs.example/Qm123")
+
+    def test_non_200_status(self):
+        resp = MagicMock()
+        resp.status_code = 404
+        with patch("ogpu._ipfs.requests.get", return_value=resp):
+            with pytest.raises(IPFSGatewayError) as exc:
+                fetch_ipfs_json("https://ipfs.example/Qm123")
+            assert exc.value.status_code == 404
+
+    def test_invalid_json(self):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.side_effect = ValueError("bad json")
+        with patch("ogpu._ipfs.requests.get", return_value=resp):
+            with pytest.raises(IPFSFetchError):
+                fetch_ipfs_json("https://ipfs.example/Qm123")
