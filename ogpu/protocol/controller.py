@@ -1,11 +1,4 @@
-"""Controller contract — low-level wrappers.
-
-Phase 1 surface:
-- ``publish_task(params, *, signer)`` — contract-faithful publishTask
-- ``confirm_response(response_address, *, signer)`` — contract-faithful confirmResponse
-
-Subsequent phases add ``cancel_task`` and Controller view accessors.
-"""
+"""Controller contract — low-level wrappers."""
 
 from __future__ import annotations
 
@@ -63,3 +56,21 @@ def extract_task_address(receipt: Receipt) -> str:
     if not logs:
         raise ValueError("TaskPublished event not found in receipt logs")
     return _get_web3().to_checksum_address(logs[0]["args"]["task"])
+
+
+def cancel_task(
+    task_address: str,
+    *,
+    signer: Signer | None = None,
+) -> Receipt:
+    """Call ``Controller.cancelTask(task)``."""
+    account = resolve_signer(signer, role=Role.CLIENT)
+    contract = load_contract("ControllerAbi")
+    addr = _get_web3().to_checksum_address(task_address)
+    return TxExecutor(
+        contract,
+        "cancelTask",
+        (addr,),
+        signer=account,
+        context=f"Controller.cancelTask({addr})",
+    ).execute()

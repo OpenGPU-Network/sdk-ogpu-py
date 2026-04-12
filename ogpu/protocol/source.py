@@ -5,10 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .._ipfs import fetch_ipfs_json
-from ..types.enums import Environment, SourceStatus
+from ..types.enums import Environment, Role, SourceStatus
 from ..types.errors import SourceNotFoundError
 from ..types.metadata import SourceParams, SourceSnapshot
+from ..types.receipt import Receipt
 from ._base import _DEFAULT_CHUNK_SIZE, _paginated_call, load_contract
+from ._signer import Signer, resolve_signer
 
 if TYPE_CHECKING:
     from .task import Task
@@ -103,6 +105,35 @@ class Source:
 
     def get_preferred_environment_of(self, provider: str) -> Environment:
         return Environment(self._contract().functions.preferredEnvironmentOf(provider).call())
+
+    # ------------------------------------------------------------------ #
+    # Write methods
+    # ------------------------------------------------------------------ #
+
+    def set_status(self, status: SourceStatus, *, signer: Signer | None = None) -> Receipt:
+        """Call ``Source.setStatus(uint8)`` directly on the instance contract."""
+        from ._base import TxExecutor
+
+        account = resolve_signer(signer, role=Role.CLIENT)
+        return TxExecutor(
+            self._contract(),
+            "setStatus",
+            (int(status),),
+            signer=account,
+            context=f"Source({self.address}).setStatus",
+        ).execute()
+
+    def set_params(self, params: SourceParams, *, signer: Signer | None = None) -> Receipt:
+        """Call ``Nexus.updateSource(source, params)`` — goes through Nexus for event emission."""
+        from . import nexus
+
+        return nexus.update_source(self.address, params, signer=signer)
+
+    def inactivate(self, *, signer: Signer | None = None) -> Receipt:
+        """Call ``Nexus.inactivateSource(source)``."""
+        from . import nexus
+
+        return nexus.inactivate_source(self.address, signer=signer)
 
     # ------------------------------------------------------------------ #
     # Snapshot

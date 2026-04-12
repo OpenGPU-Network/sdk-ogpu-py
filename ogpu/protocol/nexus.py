@@ -1,11 +1,4 @@
-"""Nexus contract — low-level wrappers.
-
-Phase 1 surface:
-- ``publish_source(params, *, signer)`` — contract-faithful publishSource.
-
-Subsequent phases expand this to cover Nexus reads, provider-side writes
-(register / unregister / attempt / submit_response), and admin setters.
-"""
+"""Nexus contract — low-level wrappers."""
 
 from __future__ import annotations
 
@@ -40,3 +33,40 @@ def extract_source_address(receipt: Receipt) -> str:
     if not logs:
         raise ValueError("SourcePublished event not found in receipt logs")
     return _get_web3().to_checksum_address(logs[0]["args"]["source"])
+
+
+def update_source(
+    source_address: str,
+    params: SourceParams,
+    *,
+    signer: Signer | None = None,
+) -> Receipt:
+    """Call ``Nexus.updateSource(source, params)``."""
+    account = resolve_signer(signer, role=Role.CLIENT)
+    contract = load_contract("NexusAbi")
+    addr = _get_web3().to_checksum_address(source_address)
+    return TxExecutor(
+        contract,
+        "updateSource",
+        (addr, params.to_tuple()),
+        signer=account,
+        context=f"Nexus.updateSource({addr})",
+    ).execute()
+
+
+def inactivate_source(
+    source_address: str,
+    *,
+    signer: Signer | None = None,
+) -> Receipt:
+    """Call ``Nexus.inactivateSource(source)``."""
+    account = resolve_signer(signer, role=Role.CLIENT)
+    contract = load_contract("NexusAbi")
+    addr = _get_web3().to_checksum_address(source_address)
+    return TxExecutor(
+        contract,
+        "inactivateSource",
+        (addr,),
+        signer=account,
+        context=f"Nexus.inactivateSource({addr})",
+    ).execute()

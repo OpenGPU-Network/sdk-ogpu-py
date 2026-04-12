@@ -18,6 +18,7 @@ from ..types import (
     DeliveryMethod,
     Environment,
     ImageEnvironments,
+    Receipt,
     SourceInfo,
     SourceMetadata,
     TaskInfo,
@@ -114,6 +115,51 @@ def get_task_responses(
     return Task(task_address).get_responses(lower=lower, upper=upper)
 
 
+def cancel_task(
+    task: str | Task,
+    private_key: str | None = None,
+    **_ignored: Any,
+) -> Receipt:
+    """Cancel a task. Returns ``Receipt``."""
+    from ..protocol.controller import cancel_task as _cancel_task
+
+    if private_key is None:
+        private_key = get_private_key()
+    account = Account.from_key(private_key)
+    addr = str(task)
+    return _cancel_task(addr, signer=account)
+
+
+def update_source(
+    source: str | Source,
+    new_info: SourceInfo,
+    private_key: str | None = None,
+    **_ignored: Any,
+) -> Receipt:
+    """Update a source's on-chain params. Returns ``Receipt``."""
+    from ..protocol.nexus import update_source as _update_source
+
+    if private_key is None:
+        private_key = get_private_key()
+    account = Account.from_key(private_key)
+    params = new_info.to_source_params(account.address)
+    return _update_source(str(source), params, signer=account)
+
+
+def inactivate_source(
+    source: str | Source,
+    private_key: str | None = None,
+    **_ignored: Any,
+) -> Receipt:
+    """Inactivate a source. Returns ``Receipt``."""
+    from ..protocol.nexus import inactivate_source as _inactivate_source
+
+    if private_key is None:
+        private_key = get_private_key()
+    account = Account.from_key(private_key)
+    return _inactivate_source(str(source), signer=account)
+
+
 __all__ = [
     # Publishing (instance returns)
     "publish_source",
@@ -121,6 +167,10 @@ __all__ = [
     "confirm_response",
     "set_agent",
     "get_task_responses",
+    # Phase 3 client operations
+    "cancel_task",
+    "update_source",
+    "inactivate_source",
     # Instance classes (re-exported for convenience)
     "Source",
     "Task",

@@ -8,7 +8,9 @@ from .._ipfs import fetch_ipfs_json
 from ..types.enums import DeliveryMethod, TaskStatus
 from ..types.errors import TaskNotFoundError
 from ..types.metadata import TaskParams, TaskSnapshot
+from ..types.receipt import Receipt
 from ._base import _DEFAULT_CHUNK_SIZE, ZERO_ADDRESS, _paginated_call, load_contract
+from ._signer import Signer
 
 if TYPE_CHECKING:
     from .response import Response
@@ -131,6 +133,16 @@ class Task:
 
     def is_already_submitted(self, hash_bytes: bytes) -> bool:
         return bool(self._contract().functions.isAlreadySubmitted(hash_bytes).call())
+
+    # ------------------------------------------------------------------ #
+    # Write methods
+    # ------------------------------------------------------------------ #
+
+    def cancel(self, *, signer: Signer | None = None) -> Receipt:
+        """Call ``Controller.cancelTask(task)``."""
+        from . import controller
+
+        return controller.cancel_task(self.address, signer=signer)
 
     # ------------------------------------------------------------------ #
     # Snapshot

@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any
 from ..types.enums import ResponseStatus
 from ..types.errors import ResponseNotFoundError
 from ..types.metadata import ResponseParams, ResponseSnapshot
+from ..types.receipt import Receipt
 from ._base import load_contract
+from ._signer import Signer
 
 if TYPE_CHECKING:
     from .task import Task
@@ -66,6 +68,16 @@ class Response:
 
     def is_confirmed(self) -> bool:
         return bool(self._contract().functions.confirmedFinal().call())
+
+    # ------------------------------------------------------------------ #
+    # Write methods
+    # ------------------------------------------------------------------ #
+
+    def confirm(self, *, signer: Signer | None = None) -> Receipt:
+        """Call ``Controller.confirmResponse(response)``."""
+        from . import controller
+
+        return controller.confirm_response(self.address, signer=signer)
 
     # ------------------------------------------------------------------ #
     # Snapshot
