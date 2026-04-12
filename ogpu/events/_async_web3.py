@@ -10,7 +10,7 @@ _instances: dict[str, AsyncWeb3] = {}
 
 async def get_async_web3() -> AsyncWeb3:
     """Return a cached AsyncWeb3 instance for the current chain's RPC URL."""
-    from ..client.chain_config import ChainConfig
+    from ..chain.config import ChainConfig
 
     url = ChainConfig.get_rpc()
 

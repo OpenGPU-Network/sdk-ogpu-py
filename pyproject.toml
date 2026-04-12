@@ -52,7 +52,7 @@ where = ["."]
 include = ["ogpu*"]
 
 [tool.setuptools.package-data]
-ogpu = ["client/abis/**/*.json"]
+ogpu = ["chain/abis/**/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -87,11 +87,5 @@ strict = true
 exclude = ["ogpu/service/", "tests/", "build/"]
 
 [[tool.mypy.overrides]]
-module = [
-    "ogpu.service.*",
-    "ogpu.client.nonce_manager",
-    "ogpu.client.nonce_utils",
-    "ogpu.client.web3_manager",
-    "ogpu.client.config",
-]
+module = ["ogpu.service.*"]
 ignore_errors = true

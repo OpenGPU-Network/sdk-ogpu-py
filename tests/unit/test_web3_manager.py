@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ogpu.client.chain_config import ChainId
-from ogpu.client.web3_manager import Web3Manager, get_web3_for_chain
+from ogpu.chain.config import ChainId
+from ogpu.chain.web3 import Web3Manager, get_web3_for_chain
 
 
 class TestWeb3Manager:
@@ -14,7 +14,7 @@ class TestWeb3Manager:
         probe = MagicMock()
         probe.is_connected.return_value = True
 
-        with patch("ogpu.client.web3_manager.Web3", return_value=probe):
+        with patch("ogpu.chain.web3.Web3", return_value=probe):
             a = Web3Manager.get_web3_instance(ChainId.OGPU_MAINNET)
             b = Web3Manager.get_web3_instance(ChainId.OGPU_MAINNET)
         assert a is b
@@ -24,7 +24,7 @@ class TestWeb3Manager:
         probe = MagicMock()
         probe.is_connected.return_value = True
 
-        with patch("ogpu.client.web3_manager.Web3", return_value=probe):
+        with patch("ogpu.chain.web3.Web3", return_value=probe):
             a = Web3Manager.get_web3_instance()
         assert a is probe
 
@@ -33,7 +33,7 @@ class TestWeb3Manager:
         probe = MagicMock()
         probe.is_connected.return_value = False
 
-        with patch("ogpu.client.web3_manager.Web3", return_value=probe):
+        with patch("ogpu.chain.web3.Web3", return_value=probe):
             with pytest.raises(ConnectionError):
                 Web3Manager.get_web3_instance(ChainId.OGPU_MAINNET)
 
@@ -41,7 +41,7 @@ class TestWeb3Manager:
         Web3Manager._web3_instances.clear()
         probe = MagicMock()
         probe.is_connected.return_value = True
-        with patch("ogpu.client.web3_manager.Web3", return_value=probe):
+        with patch("ogpu.chain.web3.Web3", return_value=probe):
             Web3Manager.get_web3_instance(ChainId.OGPU_MAINNET)
         assert ChainId.OGPU_MAINNET in Web3Manager._web3_instances
         Web3Manager.update_rpc_url(ChainId.OGPU_MAINNET, "https://new.example")
@@ -51,5 +51,5 @@ class TestWeb3Manager:
         Web3Manager._web3_instances.clear()
         probe = MagicMock()
         probe.is_connected.return_value = True
-        with patch("ogpu.client.web3_manager.Web3", return_value=probe):
+        with patch("ogpu.chain.web3.Web3", return_value=probe):
             assert get_web3_for_chain(ChainId.OGPU_TESTNET) is probe

@@ -58,7 +58,7 @@ _SINGLETON_ABI_TO_KEY: dict[str, str] = {
 
 
 def _get_web3() -> Web3:
-    from ..client.web3_manager import Web3Manager
+    from ..chain.web3 import Web3Manager
 
     return Web3Manager.get_web3_instance()
 
@@ -71,7 +71,7 @@ def load_contract(abi_name: str, address: str | None = None) -> Contract:
     Instance-bound ABIs (``TaskAbi``, ``SourceAbi``, ``ResponseAbi``) require an
     explicit address.
     """
-    from ..client.chain_config import ChainConfig
+    from ..chain.config import ChainConfig
 
     web3 = _get_web3()
     abi = ChainConfig.load_abi(abi_name)
@@ -216,7 +216,7 @@ class TxExecutor:
         self.max_retries = max(1, max_retries)
 
     def execute(self) -> Receipt:
-        from ..client.nonce_manager import NonceManager
+        from ..chain.nonce import NonceManager
 
         web3 = _get_web3()
         last_error: Exception | None = None

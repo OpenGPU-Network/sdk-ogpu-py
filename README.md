@@ -10,6 +10,7 @@ pip install ogpu
 
 The SDK has two sides:
 
+- **`ogpu.chain`** — `ChainConfig`, `ChainId`, nonce utilities, ABI loader (re-exported at top level: `from ogpu import ChainConfig`)
 - **`ogpu.client` / `ogpu.protocol`** — interact with the blockchain: publish sources and tasks, manage vault staking, monitor events
 - **`ogpu.service`** — framework for source developers to expose task handlers inside Docker containers
 
@@ -20,7 +21,8 @@ The SDK has two sides:
 ```python
 import time
 from web3 import Web3
-from ogpu.client import ChainConfig, ChainId, TaskInfo, TaskInput, publish_task
+from ogpu import ChainConfig, ChainId
+from ogpu.client import TaskInfo, TaskInput, publish_task
 
 ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
@@ -80,7 +82,7 @@ asyncio.run(monitor("0xTASK_ADDRESS"))
 ### Custom RPC
 
 ```python
-from ogpu.client import ChainConfig
+from ogpu import ChainConfig
 
 ChainConfig.set_rpc("https://my-private-node.example")
 ChainConfig.get_rpc()     # current URL
@@ -91,12 +93,13 @@ ChainConfig.reset_rpc()   # restore default
 
 ```
 ogpu/
+  chain/        # ChainConfig, ChainId, Web3Manager, nonce, ABI files
+  types/        # enums, errors, Receipt, metadata
   protocol/     # low-level 1:1 contract wrappers
     nexus, controller, terminal, vault
     Source, Task, Response, Provider, Master
   client/       # high-level client workflows
   events/       # async event watchers (the one async island)
-  types/        # enums, errors, Receipt, metadata
   service/      # source developer framework (separate concern)
 ```
 

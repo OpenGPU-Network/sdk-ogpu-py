@@ -4,6 +4,7 @@
 
 ### New Features
 
+- **Chain package** (`ogpu.chain`) — new top-level home for `ChainConfig`, `ChainId`, `Web3Manager`, `NonceManager`, ABI files, and RPC URL config. Role-agnostic, used by every SDK module. `from ogpu import ChainConfig` ergonomically re-exports the public surface.
 - **Protocol layer** (`ogpu.protocol`) — low-level, 1:1 wrappers for every user-callable contract function across Nexus, Controller, Terminal, and Vault
 - **Instance classes** — `Source`, `Task`, `Response`, `Provider`, `Master` as live stateless proxies bound to contract addresses, with full read + write methods and `snapshot()` batch capture
 - **Vault module** (`ogpu.protocol.vault`) — deposit, withdraw, lock, unbond, cancel_unbonding, claim + all view functions. Previously 0% coverage from Python
@@ -29,12 +30,22 @@
 - **Old `Response` and `ConfirmedResponse` dataclasses deleted.** Replaced by `Response` instance class.
 - **`requires-python` bumped to `>=3.10`.**
 - **No HTTP dependency for contract reads.** The management-backend HTTP call in the old `get_confirmed_response` is removed entirely.
+- **Chain infrastructure moved out of `ogpu.client`** (decision O4). Clean break — no compatibility shims:
+  - `from ogpu.client import ChainConfig` → `from ogpu import ChainConfig` (or `from ogpu.chain import ChainConfig`)
+  - `from ogpu.client import ChainId` → `from ogpu import ChainId`
+  - `from ogpu.client import fix_nonce, reset_nonce_cache, clear_all_nonce_caches, get_nonce_info` → `from ogpu import fix_nonce, ...`
+  - `from ogpu.client.chain_config import ChainConfig` → `from ogpu.chain.config import ChainConfig`
+  - `from ogpu.client.nonce_manager import NonceManager` → `from ogpu.chain.nonce import NonceManager`
+  - `from ogpu.client.web3_manager import Web3Manager` → `from ogpu.chain.web3 import Web3Manager`
+  - ABI files moved from `ogpu/client/abis/` to `ogpu/chain/abis/`
+  - `ogpu.client` now contains only client-role workflows (publish_source, publish_task, confirm_response, set_agent, cancel_task, update_source, inactivate_source, get_task_responses)
 
 ### Internal
 
+- New `ogpu/chain/` directory: config, web3, nonce (merged from old client/chain_config.py + config.py + web3_manager.py + nonce_manager.py + nonce_utils.py), abis/
 - New `ogpu/types/` directory: enums, errors, receipt, metadata
 - New `ogpu/protocol/` directory: _base, _signer, nexus, controller, terminal, vault, source, task, response, provider, master
 - New `ogpu/events/` directory: async event watchers (the one async island)
 - `ogpu/agent/` deleted
-- `ogpu/client/` simplified to thin re-export wrappers
+- `ogpu/client/` trimmed to client-role workflows only
 - `ogpu/service/` untouched

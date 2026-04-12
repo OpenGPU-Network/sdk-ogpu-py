@@ -7,7 +7,7 @@ from typing import Any
 from web3 import AsyncWeb3
 from web3.contract import AsyncContract
 
-from ..client.chain_config import ChainConfig
+from ..chain.config import ChainConfig
 
 
 async def get_nexus_contract(w3: AsyncWeb3) -> AsyncContract:

@@ -1,16 +1,21 @@
 """Client-role SDK surface.
 
-Publishing helpers return live instance classes (``Source``, ``Task``) as of
-Phase 2. ``confirm_response`` and ``set_agent`` still return tx-hash strings
-and will migrate to ``Receipt`` in a later phase.
+Thin wrappers around the protocol layer for the client role. Every call
+accepts a ``private_key=`` kwarg that is resolved via
+``resolve_signer(private_key, role=Role.CLIENT)`` — falling back to the
+``CLIENT_PRIVATE_KEY`` env var when omitted.
+
+Chain configuration (`ChainConfig`, `ChainId`, `fix_nonce`, etc.) lives in
+``ogpu.chain`` and is re-exported at the top level: ``from ogpu import
+ChainConfig``. Old imports ``from ogpu.client import ChainConfig`` no
+longer work — see the v0.2.1 CHANGELOG.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from eth_account import Account
-
+from ..protocol._signer import resolve_signer
 from ..protocol.response import Response
 from ..protocol.source import Source
 from ..protocol.task import Task
@@ -19,6 +24,7 @@ from ..types import (
     Environment,
     ImageEnvironments,
     Receipt,
+    Role,
     SourceInfo,
     SourceMetadata,
     TaskInfo,
@@ -26,14 +32,6 @@ from ..types import (
     combine_environments,
     environment_names,
     parse_environments,
-)
-from .chain_config import ChainConfig, ChainId
-from .config import get_private_key
-from .nonce_utils import (
-    clear_all_nonce_caches,
-    fix_nonce,
-    get_nonce_info,
-    reset_nonce_cache,
 )
 
 
@@ -46,10 +44,7 @@ def publish_source(
     from ..protocol.nexus import extract_source_address
     from ..protocol.nexus import publish_source as _publish_source
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
-
+    account = resolve_signer(private_key, role=Role.CLIENT)
     params = source_info.to_source_params(account.address)
     receipt = _publish_source(params, signer=account)
     addr = extract_source_address(receipt)
@@ -65,10 +60,7 @@ def publish_task(
     from ..protocol.controller import extract_task_address
     from ..protocol.controller import publish_task as _publish_task
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
-
+    account = resolve_signer(private_key, role=Role.CLIENT)
     params = task_info.to_task_params()
     receipt = _publish_task(params, signer=account)
     addr = extract_task_address(receipt)
@@ -83,9 +75,7 @@ def confirm_response(
     """Confirm a response. Returns the tx hash string."""
     from ..protocol.controller import confirm_response as _confirm_response
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
+    account = resolve_signer(private_key, role=Role.CLIENT)
     receipt = _confirm_response(response_address, signer=account)
     return receipt.tx_hash
 
@@ -99,9 +89,7 @@ def set_agent(
     """Set agent status on the Terminal contract. Returns the tx hash string."""
     from ..protocol.terminal import set_agent as _set_agent
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
+    account = resolve_signer(private_key, role=Role.CLIENT)
     receipt = _set_agent(agent_address, value, signer=account)
     return receipt.tx_hash
 
@@ -123,11 +111,8 @@ def cancel_task(
     """Cancel a task. Returns ``Receipt``."""
     from ..protocol.controller import cancel_task as _cancel_task
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
-    addr = str(task)
-    return _cancel_task(addr, signer=account)
+    account = resolve_signer(private_key, role=Role.CLIENT)
+    return _cancel_task(str(task), signer=account)
 
 
 def update_source(
@@ -139,9 +124,7 @@ def update_source(
     """Update a source's on-chain params. Returns ``Receipt``."""
     from ..protocol.nexus import update_source as _update_source
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
+    account = resolve_signer(private_key, role=Role.CLIENT)
     params = new_info.to_source_params(account.address)
     return _update_source(str(source), params, signer=account)
 
@@ -154,9 +137,7 @@ def inactivate_source(
     """Inactivate a source. Returns ``Receipt``."""
     from ..protocol.nexus import inactivate_source as _inactivate_source
 
-    if private_key is None:
-        private_key = get_private_key()
-    account = Account.from_key(private_key)
+    account = resolve_signer(private_key, role=Role.CLIENT)
     return _inactivate_source(str(source), signer=account)
 
 
@@ -175,11 +156,6 @@ __all__ = [
     "Source",
     "Task",
     "Response",
-    # Nonce utilities
-    "fix_nonce",
-    "reset_nonce_cache",
-    "clear_all_nonce_caches",
-    "get_nonce_info",
     # Types re-exported from ogpu.types
     "SourceInfo",
     "TaskInfo",
@@ -191,7 +167,4 @@ __all__ = [
     "combine_environments",
     "environment_names",
     "parse_environments",
-    # Chain configuration
-    "ChainConfig",
-    "ChainId",
 ]

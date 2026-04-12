@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ogpu.client.nonce_manager import NonceManager
+from ogpu.chain.nonce import NonceManager
 
 
 def _make_web3(pending_nonce: int = 5):

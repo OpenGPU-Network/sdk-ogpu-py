@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from eth_account import Account
 
-from ogpu.client.nonce_manager import NonceManager
-from ogpu.client.nonce_utils import (
+from ogpu.chain.nonce import (
+    NonceManager,
     clear_all_nonce_caches,
     fix_nonce,
     get_nonce_info,
@@ -37,15 +37,15 @@ class TestFixNonce:
     def test_no_pending_does_nothing(self):
         NonceManager.clear_all()
         web3 = _mock_web3(mined=5, pending=5)
-        with patch("ogpu.client.nonce_utils.WEB3", return_value=web3):
+        with patch("ogpu.chain.nonce.WEB3", return_value=web3):
             result = fix_nonce(private_key=_HEX_KEY)
         assert result == 5
 
     def test_pending_transactions_are_replaced(self):
         NonceManager.clear_all()
         web3 = _mock_web3(mined=5, pending=8)
-        with patch("ogpu.client.nonce_utils.WEB3", return_value=web3):
-            with patch("ogpu.client.nonce_utils.time.sleep"):
+        with patch("ogpu.chain.nonce.WEB3", return_value=web3):
+            with patch("ogpu.chain.nonce.time.sleep"):
                 result = fix_nonce(private_key=_HEX_KEY)
         # Should have attempted 3 replacement sends
         assert web3.eth.send_raw_transaction.call_count == 3
@@ -56,7 +56,7 @@ class TestResetNonceCache:
     def test_clears_single_address(self):
         NonceManager.clear_all()
         web3 = _mock_web3()
-        with patch("ogpu.client.nonce_utils.WEB3", return_value=web3):
+        with patch("ogpu.chain.nonce.WEB3", return_value=web3):
             NonceManager.get_nonce(
                 Account.from_key(_HEX_KEY).address, web3
             )
@@ -83,7 +83,7 @@ class TestGetNonceInfo:
     def test_returns_mined_pending_and_cached(self):
         NonceManager.clear_all()
         web3 = _mock_web3(mined=3, pending=5)
-        with patch("ogpu.client.nonce_utils.WEB3", return_value=web3):
+        with patch("ogpu.chain.nonce.WEB3", return_value=web3):
             info = get_nonce_info(private_key=_HEX_KEY)
         assert info["mined_nonce"] == 3
         assert info["pending_nonce"] == 5

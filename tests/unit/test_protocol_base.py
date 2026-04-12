@@ -182,11 +182,11 @@ class TestLoadContract:
         with (
             patch("ogpu.protocol._base._get_web3", return_value=fake_web3),
             patch(
-                "ogpu.client.chain_config.ChainConfig.load_abi",
+                "ogpu.chain.config.ChainConfig.load_abi",
                 return_value=[{"name": "publishSource", "type": "function"}],
             ),
             patch(
-                "ogpu.client.chain_config.ChainConfig.get_contract_address",
+                "ogpu.chain.config.ChainConfig.get_contract_address",
                 return_value="0xNEXUS",
             ) as get_addr,
         ):
@@ -199,9 +199,9 @@ class TestLoadContract:
         fake_web3.to_checksum_address = lambda a: a
         with (
             patch("ogpu.protocol._base._get_web3", return_value=fake_web3),
-            patch("ogpu.client.chain_config.ChainConfig.load_abi", return_value=[]),
+            patch("ogpu.chain.config.ChainConfig.load_abi", return_value=[]),
             patch(
-                "ogpu.client.chain_config.ChainConfig.get_contract_address"
+                "ogpu.chain.config.ChainConfig.get_contract_address"
             ) as get_addr,
         ):
             load_contract("TaskAbi", address="0xTASK")
@@ -211,7 +211,7 @@ class TestLoadContract:
     def test_unknown_singleton_raises(self):
         with (
             patch("ogpu.protocol._base._get_web3", return_value=MagicMock()),
-            patch("ogpu.client.chain_config.ChainConfig.load_abi", return_value=[]),
+            patch("ogpu.chain.config.ChainConfig.load_abi", return_value=[]),
         ):
             with pytest.raises(ValueError, match="no singleton address"):
                 load_contract("TaskAbi")
@@ -253,12 +253,12 @@ class TestTxExecutor:
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
             patch(
-                "ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=5
+                "ogpu.chain.nonce.NonceManager.get_nonce", return_value=5
             ),
             patch(
-                "ogpu.client.nonce_manager.NonceManager.increment_nonce"
+                "ogpu.chain.nonce.NonceManager.increment_nonce"
             ) as inc,
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract, "doThing", (42,), signer=sample_account
@@ -281,9 +281,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=1),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=1),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract,
@@ -312,10 +312,10 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
             patch(
-                "ogpu.client.nonce_manager.NonceManager.reset_nonce"
+                "ogpu.chain.nonce.NonceManager.reset_nonce"
             ) as reset,
         ):
             executor = TxExecutor(
@@ -334,9 +334,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract, "doThing", (), signer=sample_account, max_retries=2
@@ -361,9 +361,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
             patch("ogpu.protocol._base.time.sleep") as sleeper,
         ):
             executor = TxExecutor(
@@ -382,9 +382,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
             patch("ogpu.protocol._base.time.sleep"),
         ):
             executor = TxExecutor(
@@ -399,9 +399,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract, "doThing", (), signer=sample_account
@@ -416,9 +416,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract, "doThing", (), signer=sample_account
@@ -432,9 +432,9 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.client.nonce_manager.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.client.nonce_manager.NonceManager.increment_nonce"),
-            patch("ogpu.client.nonce_manager.NonceManager.reset_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract, "doThing", (), signer=sample_account, value=1000

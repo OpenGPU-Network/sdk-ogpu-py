@@ -11,9 +11,9 @@ from eth_account import Account
 @pytest.fixture(autouse=True)
 def reset_global_state():
     """Reset every process-wide cache before and after each test."""
-    from ogpu.client.chain_config import ChainConfig, ChainId
-    from ogpu.client.nonce_manager import NonceManager
-    from ogpu.client.web3_manager import Web3Manager
+    from ogpu.chain.config import ChainConfig, ChainId
+    from ogpu.chain.nonce import NonceManager
+    from ogpu.chain.web3 import Web3Manager
 
     ChainConfig._current_chain = ChainId.OGPU_MAINNET
     ChainConfig._loaded_abis.clear()

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ogpu.client.chain_config import ChainConfig, ChainId
+from ogpu.chain.config import ChainConfig, ChainId
 from ogpu.types.errors import ChainNotSupportedError, InvalidRpcUrlError
 
 
@@ -59,10 +59,10 @@ class TestSetRpc:
         probe.is_connected.return_value = True
         with (
             patch(
-                "ogpu.client.chain_config.Web3", return_value=probe
+                "ogpu.chain.config.Web3", return_value=probe
             ),
             patch(
-                "ogpu.client.web3_manager.Web3Manager.update_rpc_url"
+                "ogpu.chain.web3.Web3Manager.update_rpc_url"
             ) as update,
         ):
             ChainConfig.set_rpc("https://my-node.example", ChainId.OGPU_MAINNET)
@@ -73,14 +73,14 @@ class TestSetRpc:
     def test_unreachable_raises(self):
         probe = MagicMock()
         probe.is_connected.return_value = False
-        with patch("ogpu.client.chain_config.Web3", return_value=probe):
+        with patch("ogpu.chain.config.Web3", return_value=probe):
             with pytest.raises(InvalidRpcUrlError):
                 ChainConfig.set_rpc("https://broken.example")
 
     def test_connect_exception_raises(self):
         probe = MagicMock()
         probe.is_connected.side_effect = Exception("boom")
-        with patch("ogpu.client.chain_config.Web3", return_value=probe):
+        with patch("ogpu.chain.config.Web3", return_value=probe):
             with pytest.raises(InvalidRpcUrlError):
                 ChainConfig.set_rpc("https://boom.example")
 
@@ -92,7 +92,7 @@ class TestSetRpc:
 class TestResetRpc:
     def test_restores_default(self):
         with patch(
-            "ogpu.client.web3_manager.Web3Manager.update_rpc_url"
+            "ogpu.chain.web3.Web3Manager.update_rpc_url"
         ) as update:
             ChainConfig.reset_rpc(ChainId.OGPU_MAINNET)
             args = update.call_args[0]
@@ -102,7 +102,7 @@ class TestResetRpc:
     def test_uses_current_chain_when_omitted(self):
         ChainConfig.set_chain(ChainId.OGPU_TESTNET)
         with patch(
-            "ogpu.client.web3_manager.Web3Manager.update_rpc_url"
+            "ogpu.chain.web3.Web3Manager.update_rpc_url"
         ) as update:
             ChainConfig.reset_rpc()
             args = update.call_args[0]

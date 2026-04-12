@@ -2,18 +2,28 @@
 
 The SDK is split into:
 
-- ``ogpu.protocol`` — low-level, 1:1 with contract ABIs (v0.2.1 scaffolding)
-- ``ogpu.client`` — client-role workflows (transitional in v0.2.1)
-- ``ogpu.service`` — framework for source developers (frozen, out of scope)
-- ``ogpu.types`` — shared enums, dataclasses, and exceptions
+- ``ogpu.chain``    — ChainConfig, ChainId, Web3Manager, nonce utilities, ABI loader
+- ``ogpu.types``    — shared enums, dataclasses, and exceptions
+- ``ogpu.protocol`` — low-level, 1:1 with contract ABIs
+- ``ogpu.client``   — client-role workflows (publish_source, publish_task, ...)
+- ``ogpu.events``   — async event subscriptions (the one async island)
+- ``ogpu.service``  — framework for source developers (frozen, out of scope)
 """
 
 from __future__ import annotations
 
-from . import client, events, protocol, service, types
-from .client.chain_config import ChainConfig, ChainId
+from . import chain, client, events, protocol, service, types
+from .chain import (
+    ChainConfig,
+    ChainId,
+    clear_all_nonce_caches,
+    fix_nonce,
+    get_nonce_info,
+    reset_nonce_cache,
+)
 
 __all__ = [
+    "chain",
     "client",
     "events",
     "protocol",
@@ -21,4 +31,8 @@ __all__ = [
     "types",
     "ChainConfig",
     "ChainId",
+    "fix_nonce",
+    "reset_nonce_cache",
+    "clear_all_nonce_caches",
+    "get_nonce_info",
 ]
