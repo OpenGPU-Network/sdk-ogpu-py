@@ -1,146 +1,88 @@
-# Installation Guide
+# Installation
 
-This guide will help you install and set up the OpenGPU SDK in your Python environment.
+## Requirements
 
-## Prerequisites
+- **Python 3.10+**
+- Access to an OpenGPU RPC endpoint (the SDK ships with defaults for mainnet and testnet)
+- A funded wallet on the chain you target (testnet tokens for testing)
 
-- **Python 3.8 or higher**
-- **pip package manager**
-- **Git** (for development installation)
+## Install
 
-## 🚀 Quick Installation
+=== "pip"
 
-### Standard Installation
+    ```bash
+    pip install ogpu
+    ```
 
-Install the OpenGPU SDK using pip:
+=== "pip + examples"
 
-```bash
-pip install ogpu
-```
+    ```bash
+    pip install "ogpu[examples]"
+    ```
 
-### Virtual Environment (Recommended)
+    Adds Jupyter so the scenario notebooks under
+    [`examples/scenarios/`](https://github.com/OpenGPU-Network/sdk-ogpu-py/tree/main/examples/scenarios)
+    can be opened and re-run locally.
 
-We strongly recommend using a virtual environment to avoid dependency conflicts:
+=== "From source"
 
-```bash
-# Create virtual environment
-python -m venv ogpu-env
+    ```bash
+    git clone https://github.com/OpenGPU-Network/sdk-ogpu-py.git
+    cd sdk-ogpu-py
+    pip install -e ".[dev]"
+    ```
 
-# Activate virtual environment
-# On Linux/Mac:
-source ogpu-env/bin/activate
-
-# On Windows:
-ogpu-env\Scripts\activate
-
-# Install the SDK
-pip install ogpu
-```
-
-### Using conda
-
-If you prefer conda:
-
-```bash
-# Create conda environment
-conda create -n ogpu-env python=3.8
-
-# Activate environment
-conda activate ogpu-env
-
-# Install the SDK
-pip install ogpu
-```
-
----
-
-## 🔧 Development Installation
-
-For contributors or those needing the latest development features:
-
-### Clone and Install
-
-```bash
-# Clone the repository
-git clone https://github.com/OpenGPU-Network/sdk-ogpu-py.git
-cd sdk-ogpu-py
-
-# Install in development mode
-pip install -e .
-
-# Install development dependencies
-pip install -e ".[dev]"
-```
-
-### Development Dependencies
-
-The development installation includes additional tools:
-
-- **pytest**: For running tests
-- **black**: Code formatting
-- **flake8**: Code linting
-- **mypy**: Type checking
-- **sphinx**: Documentation generation
-
----
-
-## ⚙️ Environment Configuration
-
-### Setup Your Environment
-
-Create a `.env` file in your project directory to store your configuration:
-
-```bash
-# Create .env file
-touch .env
-```
-
-Add your private key to the `.env` file:
-
-```env
-# .env
-CLIENT_PRIVATE_KEY=your_private_key_here
-```
-
-The SDK will automatically load environment variables from the `.env` file when you run your application.
-
-!!! warning "Security Note"
-    Never commit your `.env` file to version control. Add `.env` to your `.gitignore` file.
-
----
-
-## ✅ Verify Installation
-
-Test that everything is working correctly:
+## Verify
 
 ```python
 import ogpu
-
-# Check version
-print(f"OpenGPU SDK version: {ogpu.__version__}")
-
-# Test basic imports
-from ogpu.service import task
-from ogpu.client import OGPUClient
-
-print("✅ OpenGPU SDK installed successfully!")
+print(ogpu.ChainConfig.get_current_chain().name)  # OGPU_MAINNET
+print(ogpu.ChainConfig.get_rpc())                 # https://mainnet-rpc.ogpuscan.io
 ```
 
----
+If the import succeeds and the RPC URL prints, you're ready.
 
+## Environment variables
 
-## 🗑️ Uninstallation
+The SDK reads private keys from env vars, looked up by role. None are
+required at import time — you only need the one matching the role you
+act as.
 
-To remove the OpenGPU SDK:
+| Variable | Used by | Description |
+|---|---|---|
+| `CLIENT_PRIVATE_KEY` | `ogpu.client` | Publish sources, publish tasks, confirm responses |
+| `PROVIDER_PRIVATE_KEY` | provider-side writes | announce_master, register, attempt |
+| `MASTER_PRIVATE_KEY` | master-side writes | announce_provider, remove_provider, set_agent |
+| `AGENT_PRIVATE_KEY` | `ogpu.agent` | Scheduler role delegated by a master |
 
-```bash
-pip uninstall ogpu
+The SDK searches for a `.env` file in this order on import:
+
+1. Current working directory (`./.env`)
+2. User home (`~/.env`)
+3. SDK install directory (fallback)
+
+Any values already set in the environment take precedence.
+
+!!! tip "Vault operations need explicit signers"
+    Vault writes (`deposit`, `withdraw`, `lock`, `unbond`, `claim`,
+    `cancel_unbonding`) require `signer=` as a keyword argument. There is
+    no env-var fallback — this is intentional, to prevent accidental
+    deposit/withdraw from the wrong account.
+
+## Pick a chain
+
+Default chain is **mainnet**. Switch to testnet explicitly:
+
+```python
+from ogpu import ChainConfig, ChainId
+
+ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 ```
 
----
+For a custom RPC endpoint (private node, local fork), see
+[custom RPC](../guides/custom-rpc.md).
 
-## ⏭️ Next Steps
+## Next
 
-Now that you have the SDK installed, let's create your first task:
-
-👉 **[Quick Start Guide](quickstart.md)** - Build your first OpenGPU task in minutes
+- [Quickstart](quickstart.md) — publish and confirm a task in a handful of lines
+- [Concepts](concepts.md) — how the packages and layers fit together

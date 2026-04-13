@@ -1,27 +1,124 @@
-# 🧠 OpenGPU SDK
+# OpenGPU Python SDK
 
-Welcome to the edge of distributed AI.
+Python SDK for the [OpenGPU Network](https://opengpu.network) distributed AI compute marketplace.
 
-The `ogpu.service` SDK lets you write **task handlers** that will run **on remote provider machines** — not your laptop.  
-You define what your task expects and does, and we handle the wiring, serving, and background magic.
+```
+pip install ogpu
+```
 
-> ✨ Write your task. 🛰️ Deploy it. ⚡️ Let the network run it.
+## Overview
 
----
+The SDK has two sides:
 
-## 🚀 What is this?
+- **`ogpu.chain`** — `ChainConfig`, `ChainId`, nonce utilities, ABI loader (re-exported at top level: `from ogpu import ChainConfig`)
+- **`ogpu.client` / `ogpu.protocol`** — interact with the blockchain: publish sources and tasks, manage vault staking, monitor events
+- **`ogpu.service`** — framework for source developers to expose task handlers inside Docker containers
 
-This SDK is used by **client developers** to write Python **tasks** (as functions) that will be deployed and executed **on OpenGPU network providers**.
+## Quick Start
 
-Your code will:
-- Accept inputs (Pydantic model)
-- Process them inside a registered **task handler**
-- Expose a `/run/{task}/{task_address}` endpoint via FastAPI
-- Be served by remote compute
+### Publish a Task
 
----
+```python
+import time
+from web3 import Web3
+from ogpu import ChainConfig, ChainId
+from ogpu.client import TaskInfo, TaskInput, publish_task
 
-## 🧪 Example: Your First Task
+ChainConfig.set_chain(ChainId.OGPU_TESTNET)
+
+task = publish_task(TaskInfo(
+    source="0xYOUR_SOURCE_ADDRESS",
+    config=TaskInput(function_name="predict", data={"prompt": "hello"}),
+    expiryTime=int(time.time()) + 3600,
+    payment=Web3.to_wei(0.01, "ether"),
+))
+
+print(task.address)             # contract address
+print(task.get_status())        # TaskStatus.NEW
+print(task.get_source().address)  # navigate to the source
+```
+
+### Instance Classes
+
+Every on-chain entity has a live proxy class. Methods hit the chain on every call — no stale cache.
+
+```python
+from ogpu.protocol import Source, Task, Response, Provider, Master
+
+task = Task.load("0xTASK_ADDRESS")   # validates existence on-chain
+task.get_status()                     # TaskStatus
+task.get_attempters()                 # list[str]
+task.get_confirmed_response()         # Response | None (chain-only)
+task.cancel(signer=my_key)            # Receipt
+
+snap = task.snapshot()                # frozen capture of all fields
+print(snap.status, snap.payment, snap.attempt_count)
+```
+
+### Vault Operations
+
+```python
+from ogpu.protocol import vault
+
+vault.deposit("0xBENEFICIARY", amount=10**18, signer=my_key)
+vault.lock(amount=5 * 10**17, signer=my_key)
+vault.get_balance_of("0xADDRESS")    # int (wei)
+vault.is_eligible("0xADDRESS")       # bool
+```
+
+### Event Watching (Async)
+
+```python
+import asyncio
+from ogpu.events import watch_attempted
+
+async def monitor(task_addr: str):
+    async for event in watch_attempted(task_addr):
+        print(f"Attempt from {event.provider} @ block {event.block_number}")
+
+asyncio.run(monitor("0xTASK_ADDRESS"))
+```
+
+### Custom RPC
+
+```python
+from ogpu import ChainConfig
+
+ChainConfig.set_rpc("https://my-private-node.example")
+ChainConfig.get_rpc()     # current URL
+ChainConfig.reset_rpc()   # restore default
+```
+
+## Architecture
+
+```
+ogpu/
+  chain/        # ChainConfig, ChainId, Web3Manager, nonce, ABI files
+  types/        # enums, errors, Receipt, metadata
+  protocol/     # low-level 1:1 contract wrappers
+    nexus, controller, terminal, vault
+    Source, Task, Response, Provider, Master
+  client/       # high-level client workflows
+  events/       # async event watchers (the one async island)
+  service/      # source developer framework (separate concern)
+```
+
+**Protocol layer** — every Solidity view has a Python accessor, every state-changing function has a writer. Signer management via per-call `signer=` parameter with role-based env-var fallback (`CLIENT_PRIVATE_KEY`, `PROVIDER_PRIVATE_KEY`, `MASTER_PRIVATE_KEY`).
+
+**Instance classes** — `Source(addr)`, `Task(addr)`, `Response(addr)`, `Provider(addr)`, `Master(addr)`. Stateless — only `self.address` is stored. `Task.load(addr)` validates existence eagerly.
+
+**Events** — async generators in `ogpu.events`. HTTP filter polling, not WebSocket. Rest of SDK is sync.
+
+## Requirements
+
+- Python >= 3.10
+- `web3 >= 7.0`
+
+## Documentation
+
+Full docs: **https://opengpu-network.github.io/sdk-ogpu-py/**
+
+## Writing a Task Handler (ogpu.service)
 
 ```python
 import ogpu.service
@@ -36,58 +133,17 @@ class MultiplyOutput(BaseModel):
 
 @ogpu.service.expose()
 def multiply(data: MultiplyInput) -> MultiplyOutput:
-    ogpu.service.logger.info(f"🧮 Starting multiplication: {data.a} * {data.b}")
-    result = data.a * data.b
-    ogpu.service.logger.info(f"✅ Result computed: {result}")
-    return MultiplyOutput(result=result)
+    return MultiplyOutput(result=data.a * data.b)
 
 ogpu.service.start()
 ```
 
-That's it.
-This exposes an endpoint at:
+## License
 
-```
-POST /run/multiply/{task_address}
-```
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-With body:
-```json
-{
-  "a": 5,
-  "b": 7
-}
-```
+Released under the [MIT License](LICENSE) — Copyright © 2026 OpenGPU Network.
 
----
-
-## 📡 How It Works
-
-- `@expose()`: Marks your function as a **task handler**.
-- `start()`: Starts a FastAPI server that awaits tasks.
-- Your task runs in a background thread.
-- The result is logged, not returned over HTTP.
-
----
-
-## 📚 Documentation
-
-Complete documentation is available at: **https://opengpu-network.github.io/sdk-ogpu-py/**
-
-- **[Quick Start Guide](https://opengpu-network.github.io/sdk-ogpu-py/getting-started/quickstart/)**
-- **[API Reference](https://opengpu-network.github.io/sdk-ogpu-py/api/service/)**
-- **[Examples & Templates](https://opengpu-network.github.io/sdk-ogpu-py/sources/templates/)**
-
----
-
-## 🧙 Guidelines
-
-- Your task handler must accept **one** `pydantic.BaseModel` input
-- It must return another `pydantic.BaseModel`
-- Task (function) names must be **unique**
-- Output will be logged to the console — keep it clean 💅
-
----
-
-## 🤝 Made for the OpenGPU Network  
-Unleash your code. Let the grid handle the rest.
+You're free to use, modify, distribute, and embed `ogpu-py` in commercial or
+open-source projects. The only requirement is that the copyright notice and
+license text travel with the source.

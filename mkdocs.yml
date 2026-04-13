@@ -1,9 +1,9 @@
-site_name: OpenGPU SDK Documentation
-site_description: Python SDK for distributed AI task deployment on OpenGPU network
+site_name: OpenGPU Python SDK
+site_description: Python client for the OpenGPU Network — publish tasks, run sources, pay providers, monitor on-chain state.
 site_author: OpenGPU Team
 site_url: https://opengpu-network.github.io/sdk-ogpu-py/
 
-repo_name: Repository
+repo_name: OpenGPU-Network/sdk-ogpu-py
 repo_url: https://github.com/OpenGPU-Network/sdk-ogpu-py
 edit_uri: edit/main/docs/
 
@@ -12,15 +12,15 @@ theme:
   language: en
   logo: assets/logo.png
   favicon: assets/logo.png
+  icon:
+    repo: fontawesome/brands/github
   palette:
-    # Palette toggle for dark mode (default)
     - scheme: slate
       primary: custom
       accent: deep purple
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-    # Palette toggle for light mode
     - scheme: default
       primary: custom
       accent: deep purple
@@ -29,20 +29,31 @@ theme:
         name: Switch to dark mode
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
     - navigation.indexes
     - navigation.top
+    - navigation.footer
     - search.highlight
     - search.share
+    - search.suggest
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - toc.follow
 
 extra_css:
   - assets/custom.css
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - footnotes
+  - tables
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
@@ -51,14 +62,20 @@ markdown_extensions:
           format: !!python/name:mermaid2.fence_mermaid
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.tabbed:
       alternate_style: true
-  - attr_list
-  - md_in_html
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - toc:
       permalink: true
+      toc_depth: 3
 
 plugins:
   - search
@@ -67,46 +84,50 @@ plugins:
       handlers:
         python:
           options:
-            show_source: true
             docstring_style: google
             merge_init_into_class: true
-            show_submodules: true
-            show_if_no_docstring: true
+            show_if_no_docstring: false
             show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+            show_root_heading: false
+            show_root_toc_entry: false
+            show_source: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_submodules: false
             members_order: source
             filters:
               - "!^_"
             show_bases: false
+            heading_level: 3
 
 nav:
+  - Home: index.md
   - Getting Started:
-    - Overview: index.md
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quickstart.md
-  - Sources:
-    - Overview: sources/index.md
-    - Configuration: sources/configuration.md
-    - Custom Sources: sources/custom-sources.md
-    - Templates:
-      - Overview: sources/templates/index.md
-      - HuggingFace Pipeline: sources/templates/huggingface-pipeline.md
-      - Ollama: sources/templates/ollama.md
-  - Tasks:
-    - Overview: tasks/index.md
-    - Configuration: tasks/configuration.md
-    - Publishing Tasks: tasks/publishing-tasks.md
-    - Templates:
-      - Overview: tasks/templates/index.md
-      - HuggingFace Pipeline: tasks/templates/huggingface-pipeline.md
-      - Ollama: tasks/templates/ollama.md
-  - Responses:
-    - Overview: responses/index.md
-    - Retrieving: responses/retrieving-responses.md
-    - Confirmation: responses/confirming-responses.md
-  - Advanced:
-    - Overview: advanced/index.md
-    - Nonce Management: advanced/nonce-management.md
-  - API Reference:
-    - ogpu.service: api/service.md
-    - ogpu.client: api/client.md
-  - Contributing: contributing.md
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+      - Concepts: getting-started/concepts.md
+  - Guides:
+      - Publishing: guides/publishing.md
+      - Reading state: guides/reading-state.md
+      - Responses: guides/responses.md
+      - Vault operations: guides/vault.md
+      - Agents: guides/agents.md
+      - Watching events: guides/events.md
+      - IPFS: guides/ipfs.md
+      - Custom RPC: guides/custom-rpc.md
+      - Error handling: guides/errors.md
+      - Recipes: guides/recipes.md
+  - Reference:
+      - ogpu.client: reference/client.md
+      - ogpu.chain: reference/chain.md
+      - ogpu.protocol: reference/protocol.md
+      - ogpu.types: reference/types.md
+      - ogpu.events: reference/events.md
+      - ogpu.agent: reference/agent.md
+      - ogpu.ipfs: reference/ipfs.md
+      - ogpu.service: reference/service.md
+  - About:
+      - Changelog: about/changelog.md
+      - Contributing: about/contributing.md
