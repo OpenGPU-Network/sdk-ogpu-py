@@ -6,7 +6,6 @@ on:
 
 jobs:
   validate-release-branch:
-    name: Source branch must be a release branch
     runs-on: ubuntu-latest
     steps:
       - name: Check branch name format
@@ -34,7 +33,6 @@ jobs:
           fi
 
   test:
-    name: Tests + type check + docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
