@@ -20,7 +20,7 @@ dependencies = [
     "sentry_sdk==2.29.1",
     "python-dotenv==1.1.0",
     "web3==7.12.0",
-    "requests==2.32.3",
+    "requests>=2.32.4",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
