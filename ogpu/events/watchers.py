@@ -73,7 +73,40 @@ async def watch_task_published(
     from_block: int | None = None,
     poll_interval: float = 2.0,
 ) -> AsyncIterator[TaskPublishedEvent]:
-    """Stream ``TaskPublished`` events scoped to a specific source."""
+    """Stream ``TaskPublished`` events scoped to a specific source.
+
+    Async generator that yields ``TaskPublishedEvent`` instances for
+    every new task published to ``source_address``. Starts at
+    ``from_block`` (or current head if ``None``) and polls the RPC
+    for new logs every ``poll_interval`` seconds.
+
+    Since the Nexus events have no indexed parameters, filtering
+    happens in Python after the fetch — the watcher reads every
+    ``TaskPublished`` event and yields only the ones whose ``source``
+    matches ``source_address``.
+
+    Args:
+        source_address: The source to watch for new tasks on.
+        from_block: Start block. ``None`` means "latest" (only new
+            tasks).
+        poll_interval: Seconds between RPC polls. Raise for less
+            chatter, lower for faster reaction.
+
+    Yields:
+        ``TaskPublishedEvent`` instances as tasks are published.
+
+    Example:
+        ```python
+        import asyncio
+        from ogpu.events import watch_task_published
+
+        async def monitor(source_addr: str):
+            async for event in watch_task_published(source_addr):
+                print(f"New task: {event.task}")
+
+        asyncio.run(monitor("0x..."))
+        ```
+    """
 
     def build(entry: Any) -> TaskPublishedEvent:
         args = entry["args"]
@@ -100,7 +133,28 @@ async def watch_attempted(
     from_block: int | None = None,
     poll_interval: float = 2.0,
 ) -> AsyncIterator[AttemptedEvent]:
-    """Stream ``Attempted`` events scoped to a specific task."""
+    """Stream ``Attempted`` events scoped to a specific task.
+
+    Yields an ``AttemptedEvent`` every time a provider calls
+    ``Nexus.attempt`` on the given task. Useful for watching the
+    provider-side lifecycle of a freshly-published task — the first
+    yielded event tells you who picked it up.
+
+    Args:
+        task_address: The task to watch attempts on.
+        from_block: Start block. ``None`` means "latest".
+        poll_interval: Seconds between RPC polls.
+
+    Yields:
+        ``AttemptedEvent`` instances as attempts land.
+
+    Example:
+        ```python
+        async for event in watch_attempted(task.address):
+            print(f"Attempt from {event.provider}, "
+                  f"payment={event.suggested_payment}")
+        ```
+    """
 
     def build(entry: Any) -> AttemptedEvent:
         args = entry["args"]
@@ -128,7 +182,30 @@ async def watch_response_submitted(
     from_block: int | None = None,
     poll_interval: float = 2.0,
 ) -> AsyncIterator[ResponseSubmittedEvent]:
-    """Stream ``ResponseSubmitted`` events scoped to a specific task."""
+    """Stream ``ResponseSubmitted`` events scoped to a specific task.
+
+    Yields a ``ResponseSubmittedEvent`` every time a provider submits
+    a response for the given task. Use this to know when a response
+    contract has been deployed — the event carries the new Response
+    address.
+
+    Args:
+        task_address: The task to watch for responses on.
+        from_block: Start block. ``None`` means "latest".
+        poll_interval: Seconds between RPC polls.
+
+    Yields:
+        ``ResponseSubmittedEvent`` instances as responses are submitted.
+
+    Example:
+        ```python
+        async for event in watch_response_submitted(task.address):
+            response = Response(event.response)
+            payload = response.fetch_data()
+            print(payload)
+            break
+        ```
+    """
 
     def build(entry: Any) -> ResponseSubmittedEvent:
         args = entry["args"]
@@ -155,7 +232,21 @@ async def watch_response_status_changed(
     from_block: int | None = None,
     poll_interval: float = 2.0,
 ) -> AsyncIterator[ResponseStatusChangedEvent]:
-    """Stream ``ResponseStatusChanged`` events scoped to a specific response."""
+    """Stream ``ResponseStatusChanged`` events scoped to a specific response.
+
+    Yields ``ResponseStatusChangedEvent`` instances every time the
+    scoped response transitions state (typically from ``SUBMITTED``
+    to ``CONFIRMED``). The ``status`` field is decoded into the typed
+    ``ResponseStatus`` enum.
+
+    Args:
+        response_address: The response contract to watch.
+        from_block: Start block. ``None`` means "latest".
+        poll_interval: Seconds between RPC polls.
+
+    Yields:
+        ``ResponseStatusChangedEvent`` instances on every state change.
+    """
 
     def build(entry: Any) -> ResponseStatusChangedEvent:
         args = entry["args"]
@@ -182,7 +273,31 @@ async def watch_task_status_changed(
     from_block: int | None = None,
     poll_interval: float = 2.0,
 ) -> AsyncIterator[TaskStatusChangedEvent]:
-    """Stream ``TaskStatusChanged`` events scoped to a specific task."""
+    """Stream ``TaskStatusChanged`` events scoped to a specific task.
+
+    Yields ``TaskStatusChangedEvent`` instances on every state
+    transition of the given task. The ``status`` field is decoded
+    into the typed ``TaskStatus`` enum. Useful for waiting on the
+    full task lifecycle — the stream includes the transitions
+    ``NEW → ATTEMPTED → RESPONDED → FINALIZED`` (or ``CANCELED`` /
+    ``EXPIRED``).
+
+    Args:
+        task_address: The task to watch.
+        from_block: Start block. ``None`` means "latest".
+        poll_interval: Seconds between RPC polls.
+
+    Yields:
+        ``TaskStatusChangedEvent`` instances on every state change.
+
+    Example:
+        ```python
+        async for event in watch_task_status_changed(task.address):
+            if event.status == TaskStatus.FINALIZED:
+                print("task done!")
+                break
+        ```
+    """
 
     def build(entry: Any) -> TaskStatusChangedEvent:
         args = entry["args"]
@@ -209,7 +324,21 @@ async def watch_registered(
     from_block: int | None = None,
     poll_interval: float = 2.0,
 ) -> AsyncIterator[RegisteredEvent]:
-    """Stream ``Registered`` events scoped to a specific source."""
+    """Stream ``Registered`` events scoped to a specific source.
+
+    Yields a ``RegisteredEvent`` every time a provider calls
+    ``Nexus.register`` on the given source. Useful for watching the
+    growth of a source's registrant list in real time — e.g. a
+    source owner's dashboard that reacts as new providers come online.
+
+    Args:
+        source_address: The source to watch for new registrations.
+        from_block: Start block. ``None`` means "latest".
+        poll_interval: Seconds between RPC polls.
+
+    Yields:
+        ``RegisteredEvent`` instances on every registration.
+    """
 
     def build(entry: Any) -> RegisteredEvent:
         args = entry["args"]

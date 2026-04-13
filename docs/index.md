@@ -1,70 +1,161 @@
-# OpenGPU SDK Documentation
+---
+title: OpenGPU Python SDK
+hide:
+  - navigation
+  - toc
+---
 
+# OpenGPU Python SDK
 
-Welcome to the **OpenGPU SDK** - your gateway to distributed AI computing on the edge.
+Python client for the **OpenGPU Network** — publish AI tasks, run sources,
+pay providers, monitor on-chain state.
 
+<p style="font-size: 1.1em; color: var(--md-default-fg-color--light);">
+Object-oriented contract instances. Typed errors. Chain-only — no
+management-backend dependency. Works on mainnet and testnet out of the box.
+</p>
 
-## 🚀 What is OpenGPU SDK?
+```python
+from ogpu import ChainConfig, ChainId
+from ogpu.client import publish_task, TaskInfo, TaskInput
 
-The OpenGPU SDK is a Python library that enables developers to:
+ChainConfig.set_chain(ChainId.OGPU_TESTNET)
 
-- **Write task handlers** that execute on remote provider machines
-- **Deploy AI workloads** across the OpenGPU distributed network
-- **Manage blockchain interactions** for task publishing and response confirmation
-- **Build scalable AI applications** without managing infrastructure
+task = publish_task(TaskInfo(
+    source="0x...",
+    config=TaskInput(function_name="predict", data={"prompt": "hello"}),
+    expiryTime=int(time.time()) + 3600,
+    payment=Web3.to_wei(0.01, "ether"),
+))
 
-> ✨ **Write your task. 🛰️ Deploy it. ⚡️ Let the network run it.**
+print(task.address)           # live Task instance
+print(task.get_status())      # TaskStatus.NEW
+print(task.get_source())      # navigate back to Source
+```
 
 ---
 
-## 🌟 Key Features
+<div class="grid cards" markdown>
 
-- **🎯 Simple API**: Intuitive decorators and functions
-- **⚡ High Performance**: Optimized for distributed computing
-- **🔒 Secure**: Blockchain-based verification and payments
-- **🔄 Auto-Retry**: Automatic nonce error detection and recovery (v0.2.0.14+)
-- **📊 Monitoring**: Built-in logging and error tracking
-- **🔧 Flexible**: Support for various AI workloads
-- **📚 Well Documented**: Comprehensive guides and examples
+-   :material-rocket-launch-outline: **Get Started**
 
----
+    ---
 
-## 💡 Use Cases
+    Install, publish your first task, watch it finalize.
 
-- **🤖 AI Model Inference**: Deploy machine learning models at scale
-- **🎨 Image/Video Processing**: Distributed media processing workflows  
-- **📊 Data Analysis**: Large-scale data processing and analytics
-- **🔬 Scientific Computing**: Complex computational research tasks
-- **🎮 Game Development**: Distributed game logic and AI systems
-- **💰 DeFi Applications**: Decentralized finance computation tasks
+    [:octicons-arrow-right-24: Quickstart](getting-started/quickstart.md)
 
----
+-   :material-book-open-variant: **Guides**
 
-## 🚀 Quick Navigation
+    ---
 
-Ready to get started? Follow these steps:
+    Task-oriented how-tos: publishing, reading state, vault, events, agents.
 
-1. **[Installation](getting-started/installation.md)** - Set up the SDK in your environment
-2. **[Quick Start](getting-started/quickstart.md)** - Build your first task in minutes
+    [:octicons-arrow-right-24: All guides](guides/publishing.md)
 
-Or explore the documentation:
+-   :material-code-braces: **Reference**
 
-- **[Sources](sources/index.md)** - Learn about creating and deploying services
-- **[Tasks](tasks/index.md)** - Understand task publishing and management
-- **[Responses](responses/index.md)** - Handle and manage task results
-- **[Advanced Topics](advanced/index.md)** - Nonce management, error handling, and best practices
-- **[API Reference](api/service.md)** - Detailed function documentation
+    ---
+
+    Full API reference generated from source. Every method, every parameter.
+
+    [:octicons-arrow-right-24: API reference](reference/client.md)
+
+-   :material-layers-triple: **Architecture**
+
+    ---
+
+    Layered by role: `chain` → `types` → `protocol` → `client` / `agent` / `events`.
+
+    [:octicons-arrow-right-24: Concepts](getting-started/concepts.md)
+
+</div>
 
 ---
 
-## 🤝 Community & Support
+## What's in the SDK
 
-- **GitHub**: [OpenGPU SDK Repository](https://github.com/OpenGPU-Network/sdk-ogpu-py)
-- **Issues**: Report bugs and request features
-- **Discussions**: Community support and questions
+=== "Client operations"
+
+    ```python
+    from ogpu.client import (
+        publish_source, publish_task, confirm_response,
+        cancel_task, update_source, inactivate_source,
+        set_agent, get_task_responses,
+    )
+    ```
+
+    Everything you need to publish and manage tasks as a client.
+    Uses `CLIENT_PRIVATE_KEY` env var for signing by default.
+
+=== "Instance classes"
+
+    ```python
+    from ogpu.protocol import Source, Task, Response, Provider, Master
+
+    task = Task.load("0x...")          # eager validation
+    task.get_status()                   # TaskStatus
+    task.get_attempters()               # list[str]
+    task.get_confirmed_response()       # Response | None
+    task.snapshot()                     # frozen capture of every field
+    ```
+
+    Stateless live proxies — every method hits the chain fresh.
+
+=== "Vault"
+
+    ```python
+    from ogpu.protocol import vault
+
+    vault.deposit("0x...", amount=10**18, signer=key)
+    vault.lock(amount=5 * 10**17, signer=key)
+    vault.get_balance_of("0x...")
+    vault.get_lockup_of("0x...")
+    ```
+
+    Full vault lifecycle: deposit, lock, unbond, claim.
+
+=== "Events (async)"
+
+    ```python
+    import asyncio
+    from ogpu.events import watch_attempted
+
+    async def monitor(task_addr: str):
+        async for event in watch_attempted(task_addr):
+            print(f"Attempt from {event.provider}")
+
+    asyncio.run(monitor("0x..."))
+    ```
+
+    Six `watch_*` generators for the critical Nexus events. The one async
+    island — the rest of the SDK is sync.
 
 ---
 
-## 📄 License
+## Modules at a glance
 
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/OpenGPU-Network/sdk-ogpu-py/blob/main/LICENSE) file for details.
+| Module | Purpose |
+|---|---|
+| [`ogpu.chain`](reference/chain.md) | `ChainConfig`, `ChainId`, RPC, nonce utilities, ABI loader |
+| [`ogpu.types`](reference/types.md) | Enums, exception hierarchy, `Receipt`, metadata dataclasses |
+| [`ogpu.protocol`](reference/protocol.md) | Low-level contract wrappers + instance classes |
+| [`ogpu.client`](reference/client.md) | Client-role high-level workflows |
+| [`ogpu.agent`](reference/agent.md) | Agent scheduler wrappers (register / attempt) |
+| [`ogpu.events`](reference/events.md) | Async event watchers |
+| [`ogpu.ipfs`](reference/ipfs.md) | Publish and fetch off-chain content |
+| [`ogpu.service`](reference/service.md) | Framework for source developers (Docker side) |
+
+---
+
+## Chain-only by design
+
+The SDK talks to **one thing**: the OpenGPU RPC node. There is no indexer
+wrapper, no management-backend dependency, no fallback HTTP path. Every
+`get_*` method hits JSON-RPC. Users who need aggregate cross-task queries
+call the management backend API directly — it is not the SDK's business.
+
+!!! info "Versioning"
+    v0.2.1 is an SDK-only release. Contract addresses and ABIs are
+    unchanged from the v0.2 protocol. See the
+    [changelog](about/changelog.md) for the full breaking-change list.
