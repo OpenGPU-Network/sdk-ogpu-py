@@ -140,4 +140,10 @@ ogpu.service.start()
 
 ## License
 
-MIT
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Released under the [MIT License](LICENSE) — Copyright © 2026 OpenGPU Network.
+
+You're free to use, modify, distribute, and embed `ogpu-py` in commercial or
+open-source projects. The only requirement is that the copyright notice and
+license text travel with the source.
