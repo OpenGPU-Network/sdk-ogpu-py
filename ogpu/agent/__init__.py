@@ -10,12 +10,14 @@ The agent is a **scheduler role**: it registers providers to sources,
 chooses which providers attempt which tasks, and unregisters stale
 providers. It does NOT produce responses — response content comes from
 a real compute run (the docker source executing its handler) and must
-be signed by the provider whose image produced it. That is why
-``submit_response`` is intentionally absent from this surface.
+be signed by the provider whose image produced it. The SDK does not
+expose ``submit_response`` at all; it lives only inside the docker
+source runtime.
 
-Terminal writes that use ``msg.sender`` to identify the provider
-(``setBaseData``, ``setLiveData``, ``setDefaultAgentDisabled``) are also
-not mirrored here — those require the provider's own key.
+Provider self-reported state (``setBaseData``, ``setLiveData``) is
+similarly not mirrored here, and not in the protocol layer either —
+those use ``msg.sender`` and must be called from the provider's own
+runtime, not from an SDK script.
 
 Every function reads ``AGENT_PRIVATE_KEY`` from the environment when
 ``private_key`` is omitted.

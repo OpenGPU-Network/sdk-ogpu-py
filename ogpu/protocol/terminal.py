@@ -219,63 +219,6 @@ def remove_container(provider: str, source: str, *, signer: Signer | None = None
     ).execute()
 
 
-def set_base_data(data: str, *, signer: Signer | None = None) -> Receipt:
-    """Call ``Terminal.setBaseData(data)``. Provider-role caller.
-
-    Updates the long-lived metadata URL for a provider. Base data is
-    what appears in dashboards — name, description, capabilities,
-    hardware specs. The URL typically points at an IPFS-hosted JSON.
-
-    Uses ``msg.sender`` to identify the provider — only the provider
-    themselves can update their own base data. Agents cannot call this
-    on behalf of a provider.
-
-    Args:
-        data: New base data URL (usually IPFS).
-        signer: Provider signer. Falls back to ``PROVIDER_PRIVATE_KEY``.
-
-    Returns:
-        ``Receipt`` for the setBaseData call.
-    """
-    account = resolve_signer(signer, role=Role.PROVIDER)
-    contract = load_contract("TerminalAbi")
-    return TxExecutor(
-        contract,
-        "setBaseData",
-        (data,),
-        signer=account,
-        context="Terminal.setBaseData",
-    ).execute()
-
-
-def set_live_data(data: str, *, signer: Signer | None = None) -> Receipt:
-    """Call ``Terminal.setLiveData(data)``. Provider-role caller.
-
-    Updates the short-lived status URL for a provider. Live data is
-    ephemeral — current load, health check results, version info —
-    and is refreshed more frequently than base data.
-
-    Like ``set_base_data``, this uses ``msg.sender`` and cannot be
-    called by an agent on behalf of a provider.
-
-    Args:
-        data: New live data URL.
-        signer: Provider signer. Falls back to ``PROVIDER_PRIVATE_KEY``.
-
-    Returns:
-        ``Receipt`` for the setLiveData call.
-    """
-    account = resolve_signer(signer, role=Role.PROVIDER)
-    contract = load_contract("TerminalAbi")
-    return TxExecutor(
-        contract,
-        "setLiveData",
-        (data,),
-        signer=account,
-        context="Terminal.setLiveData",
-    ).execute()
-
-
 def set_default_agent_disabled(value: bool, *, signer: Signer | None = None) -> Receipt:
     """Call ``Terminal.setDefaultAgentDisabled(value)``. Provider-role caller.
 

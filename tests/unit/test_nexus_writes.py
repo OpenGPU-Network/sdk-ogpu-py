@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from ogpu.protocol import nexus
-from ogpu.types.metadata import ResponseParams, SourceParams
+from ogpu.types.metadata import SourceParams
 from ogpu.types.receipt import Receipt
 
 _KEY = "0x" + "11" * 32
@@ -61,10 +61,4 @@ class TestNexusProviderWrites:
     def test_attempt(self):
         with _pc(), _pe(), _pw():
             r = nexus.attempt("0xTASK", "0xPROV", 100, signer=_KEY)
-        assert r.status == 1
-
-    def test_submit_response(self):
-        rp = ResponseParams(task="0xT", provider="0xP", data="d", payment=10)
-        with _pc(), _pe():
-            r = nexus.submit_response(rp, signer=_KEY)
         assert r.status == 1

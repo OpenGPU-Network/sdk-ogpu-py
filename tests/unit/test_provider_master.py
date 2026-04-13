@@ -9,7 +9,6 @@ import pytest
 from ogpu.protocol.master import Master
 from ogpu.protocol.provider import Provider
 from ogpu.types.errors import MasterNotFoundError, ProviderNotFoundError
-from ogpu.types.metadata import ResponseParams
 from ogpu.types.receipt import Receipt
 
 _ADDR = "0x" + "aa" * 20
@@ -118,16 +117,6 @@ class TestProviderTerminalWrites:
             _prov().announce_master("0xM", signer=_KEY)
         m.assert_called_once_with("0xM", signer=_KEY)
 
-    def test_set_base_data(self):
-        with patch("ogpu.protocol.terminal.set_base_data", return_value=_r()) as m:
-            _prov().set_base_data("ipfs://d", signer=_KEY)
-        m.assert_called_once_with("ipfs://d", signer=_KEY)
-
-    def test_set_live_data(self):
-        with patch("ogpu.protocol.terminal.set_live_data", return_value=_r()) as m:
-            _prov().set_live_data("ipfs://l", signer=_KEY)
-        m.assert_called_once_with("ipfs://l", signer=_KEY)
-
     def test_set_default_agent_disabled(self):
         with patch("ogpu.protocol.terminal.set_default_agent_disabled", return_value=_r()) as m:
             _prov().set_default_agent_disabled(True, signer=_KEY)
@@ -149,12 +138,6 @@ class TestProviderNexusWrites:
         with patch("ogpu.protocol.nexus.attempt", return_value=_r()) as m:
             _prov().attempt("0xTASK", 100, signer=_KEY)
         m.assert_called_once_with("0xTASK", _ADDR, 100, signer=_KEY)
-
-    def test_submit_response(self):
-        rp = ResponseParams(task="0xT", provider="0xP", data="d", payment=10)
-        with patch("ogpu.protocol.nexus.submit_response", return_value=_r()) as m:
-            _prov().submit_response(rp, signer=_KEY)
-        m.assert_called_once_with(rp, signer=_KEY)
 
 
 class TestProviderVaultWrites:

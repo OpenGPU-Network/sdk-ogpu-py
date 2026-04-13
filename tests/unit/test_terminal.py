@@ -52,16 +52,6 @@ class TestTerminalWrites:
             r = terminal.remove_container(_ADDR, src, signer=_KEY)
         assert r.status == 1
 
-    def test_set_base_data(self):
-        with _pc(), _pe():
-            r = terminal.set_base_data("ipfs://data", signer=_KEY)
-        assert r.status == 1
-
-    def test_set_live_data(self):
-        with _pc(), _pe():
-            r = terminal.set_live_data("ipfs://live", signer=_KEY)
-        assert r.status == 1
-
     def test_set_default_agent_disabled(self):
         with _pc(), _pe():
             r = terminal.set_default_agent_disabled(True, signer=_KEY)

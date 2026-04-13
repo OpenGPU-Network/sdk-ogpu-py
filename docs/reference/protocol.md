@@ -128,13 +128,10 @@ See [error handling](../guides/errors.md) for the full mapping.
         - is_eligible
         - is_whitelisted
         - announce_master
-        - set_base_data
-        - set_live_data
         - set_default_agent_disabled
         - register_to
         - unregister_from
         - attempt
-        - submit_response
         - stake
         - unstake
         - cancel_unbonding
@@ -188,7 +185,6 @@ See [error handling](../guides/errors.md) for the full mapping.
         - register
         - unregister
         - attempt
-        - submit_response
 
 ### `ogpu.protocol.controller`
 
@@ -214,8 +210,6 @@ See [error handling](../guides/errors.md) for the full mapping.
         - announce_provider
         - remove_provider
         - remove_container
-        - set_base_data
-        - set_live_data
         - set_default_agent_disabled
         - get_master_of
         - get_provider_of

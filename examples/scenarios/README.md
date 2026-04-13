@@ -33,14 +33,16 @@ and 07 assume it has already been done.
 | 04 | [04_source_inactivation.ipynb](04_source_inactivation.ipynb) | Client | inactivate → publish_task reverts |
 | 05 | [05_vault_lifecycle.ipynb](05_vault_lifecycle.ipynb) | Any | deposit → lock → unbond → wait → claim |
 | 06 | [06_agent_setup.ipynb](06_agent_setup.ipynb) | Master | set_agent + is_agent_of + revoke_agent (authorizes The Order) |
-| 07 | [07_agent_driven_flow.ipynb](07_agent_driven_flow.ipynb) | Client + Agent (for Master) | Full end-to-end where agent key drives register/attempt/submit_response |
+| 07 | [07_agent_driven_flow.ipynb](07_agent_driven_flow.ipynb) | Client + Agent (for Master) | Agent key drives register/attempt up to Task ATTEMPTED — response submission lives in the docker source runtime, not the SDK |
 
 ## Agent flow (scenarios 06 + 07)
 
 Scenario 06 shows a master authorizing an agent address (e.g. The Order
 `0x306Dc3fF30254675B209D916475094401aCC4a1E`) via `Terminal.setAgent`. Once set,
-the agent's own key can sign `Nexus.register` / `Nexus.attempt` /
-`Nexus.submitResponse` calls on behalf of any provider managed by that master.
+the agent's own key can sign `Nexus.register` / `Nexus.attempt` calls on behalf
+of any provider managed by that master. Response submission (`Nexus.submitResponse`)
+is intentionally **not** in the SDK and must come from the docker source runtime
+that produced the actual compute output.
 
 Scenario 07 picks up where 06 leaves off: a client publishes a source and task,
 and the agent key drives the full provider-side lifecycle (register, attempt,

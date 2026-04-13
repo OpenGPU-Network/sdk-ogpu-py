@@ -18,17 +18,20 @@ for the full end-to-end flow including how to set up the agent on
 the master side first.
 
 !!! info "Scheduler role, not response producer"
-    `submit_response` is intentionally absent from this surface.
-    Agents schedule work (register / attempt / unregister) — they do
-    not produce response content. Response payloads come from a real
-    compute run (the docker source executing its handler) and must be
-    signed by the provider whose image produced them.
+    `submit_response` is not exposed here, and not anywhere else in
+    the SDK either. Agents schedule work (register / attempt /
+    unregister) — they do not produce response content. Response
+    payloads come from a real compute run (the docker source executing
+    its handler) and must be signed by the provider whose image
+    produced them, otherwise providers could spoof responses from
+    arbitrary scripts.
 
 !!! info "No `setBaseData` / `setLiveData`"
-    Those Terminal writes use `msg.sender` to identify the provider
-    they're updating data for — so an agent can't update them on
-    behalf of another provider. Providers must call those themselves
-    with their own keys.
+    Provider self-reported state writes use `msg.sender` and must come
+    from the provider's own runtime. Like `submit_response`, they're
+    not in `ogpu.agent` and not in `ogpu.protocol.terminal` either —
+    self-reported state from random SDK callers would defeat the point
+    of the field.
 
 ---
 

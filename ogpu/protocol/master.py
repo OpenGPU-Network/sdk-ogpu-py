@@ -20,10 +20,12 @@ class Master:
       providers/containers
     - **Vault** — balance, lockup, earnings, eligibility
 
-    Masters do not touch Nexus directly — provider-side operations
-    (register, attempt, submit_response) are provider-role calls,
+    Masters do not touch Nexus directly — provider-side scheduling
+    operations (``register``, ``attempt``) are provider-role calls,
     though masters can authorize an agent to drive them via
-    ``set_agent`` + ``ogpu.agent``.
+    ``set_agent`` + ``ogpu.agent``. Compute-output operations like
+    ``submit_response`` are not exposed in the SDK at all and must be
+    produced by the docker source running real compute.
 
     Lazy by default; use ``Master.load(address)`` for eager existence
     checking (``Terminal.isMaster`` must return True).

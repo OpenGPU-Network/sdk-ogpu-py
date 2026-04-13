@@ -260,7 +260,7 @@ class NotProviderError(PermissionError):
     """Account is not registered as a provider.
 
     Raised on provider-role operations (``announce_master``,
-    ``attempt``, ``submit_response``) when the signer is not a provider.
+    ``attempt``) when the signer is not a provider.
 
     Attributes:
         account: Address that tried to call the provider-role operation.

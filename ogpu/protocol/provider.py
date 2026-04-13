@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from ..types.errors import ProviderNotFoundError
-from ..types.metadata import ProviderSnapshot, ResponseParams
+from ..types.metadata import ProviderSnapshot
 from ..types.receipt import Receipt
 from ._signer import Signer
-
-if TYPE_CHECKING:
-    from .source import Source
 
 
 class Provider:
@@ -21,15 +16,23 @@ class Provider:
     on-chain. Instead, ``Provider(address)`` is a convenience wrapper
     that composes calls across three contracts:
 
-    - **Terminal** — identity, pairing, base/live data
+    - **Terminal** — identity, pairing, read-only base/live data lookups
     - **Vault** — balance, lockup, unbonding, earnings, eligibility
-    - **Nexus** — source registrations, attempts, submissions
+    - **Nexus** — source registrations and attempts
 
     Every method delegates to a module-level protocol function, filling
     in ``self.address`` as the provider argument where appropriate.
     This gives you a cleaner API surface when your code holds a
     "provider" concept (dashboards, provisioning scripts, scheduler
     code) without needing to pass the address around repeatedly.
+
+    !!! note "Provider-app responsibilities are not exposed here"
+        Operations that produce live compute output or self-reported
+        provider state — ``submit_response``, ``set_base_data``,
+        ``set_live_data`` — are intentionally absent. Those must be
+        called by the docker source itself running real compute, not
+        by an SDK caller, otherwise providers could spoof responses
+        or capacity claims from arbitrary scripts.
 
     Lazy by default — ``Provider(address)`` does no RPC. Use
     ``Provider.load(address)`` if you want an eager existence check
@@ -253,36 +256,6 @@ class Provider:
 
         return terminal.announce_master(master, signer=signer)
 
-    def set_base_data(self, data: str, *, signer: Signer | None = None) -> Receipt:
-        """Update this provider's long-lived metadata URL.
-
-        Delegates to ``Terminal.setBaseData``. Must be called by the
-        provider's own key — agents cannot set base data on behalf of
-        a provider (the contract uses ``msg.sender`` to identify the
-        provider).
-
-        Args:
-            data: New base data URL.
-            signer: Provider signer. Falls back to ``PROVIDER_PRIVATE_KEY``.
-        """
-        from . import terminal
-
-        return terminal.set_base_data(data, signer=signer)
-
-    def set_live_data(self, data: str, *, signer: Signer | None = None) -> Receipt:
-        """Update this provider's short-lived status URL.
-
-        Delegates to ``Terminal.setLiveData``. Must be called by the
-        provider's own key.
-
-        Args:
-            data: New live data URL.
-            signer: Provider signer. Falls back to ``PROVIDER_PRIVATE_KEY``.
-        """
-        from . import terminal
-
-        return terminal.set_live_data(data, signer=signer)
-
     def set_default_agent_disabled(self, value: bool, *, signer: Signer | None = None) -> Receipt:
         """Opt this provider out of (or back into) default agent delegation.
 
@@ -344,22 +317,6 @@ class Provider:
         from . import nexus
 
         return nexus.attempt(task, self.address, suggested_payment, signer=signer)
-
-    def submit_response(
-        self, response_params: ResponseParams, *, signer: Signer | None = None
-    ) -> Receipt:
-        """Submit a response on behalf of this provider.
-
-        Delegates to ``Nexus.submitResponse``. The ``response_params``
-        should already carry ``provider=self.address``.
-
-        Args:
-            response_params: The pre-built response parameters.
-            signer: Provider signer.
-        """
-        from . import nexus
-
-        return nexus.submit_response(response_params, signer=signer)
 
     # ------------------------------------------------------------------ #
     # Vault convenience wrappers (per decision H2 — signer required, no fallback)

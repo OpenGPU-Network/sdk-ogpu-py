@@ -47,29 +47,29 @@ gateways, or your own node.
 ## Typical provider flow
 
 A provider running a real compute source produces output, uploads it
-to IPFS, then submits the URL as a response:
+to IPFS, then submits the URL as the on-chain `data` field of a
+response. The submission step happens **inside the docker source
+runtime**, not from this SDK — `submit_response` is intentionally not
+exposed in `ogpu.client`, `ogpu.protocol`, or `ogpu.agent`, because a
+freely callable `submit_response` would let any provider key fabricate
+responses without doing real work.
+
+The IPFS upload is the part the SDK does help with. From inside your
+source handler:
 
 ```python
 from ogpu import publish_to_ipfs
-from ogpu.types import ResponseParams
-from ogpu.protocol import nexus
 
-def handle_task(task_address: str, input_data: dict, provider_addr: str):
+def predict(input_data):
     # 1. Run the actual compute
-    output = run_model(input_data)   # your code
+    output = run_model(input_data)
 
-    # 2. Upload the output
+    # 2. Upload the output to IPFS
     payload_url = publish_to_ipfs(output, filename="response.json")
 
-    # 3. Submit the response with the URL as the on-chain data
-    params = ResponseParams(
-        task=task_address,
-        provider=provider_addr,
-        data=payload_url,
-        payment=10**16,
-    )
-    receipt = nexus.submit_response(params, signer=PROVIDER_KEY)
-    return receipt
+    # 3. Return the URL — the source runtime turns it into an
+    #    on-chain submitResponse() call signed by the provider.
+    return {"url": payload_url, "result": output}
 ```
 
 ## Typical client flow

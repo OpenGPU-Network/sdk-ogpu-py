@@ -51,7 +51,7 @@ act as.
 | Variable | Used by | Description |
 |---|---|---|
 | `CLIENT_PRIVATE_KEY` | `ogpu.client` | Publish sources, publish tasks, confirm responses |
-| `PROVIDER_PRIVATE_KEY` | provider-side writes | announce_master, register, attempt, submit_response |
+| `PROVIDER_PRIVATE_KEY` | provider-side writes | announce_master, register, attempt |
 | `MASTER_PRIVATE_KEY` | master-side writes | announce_provider, remove_provider, set_agent |
 | `AGENT_PRIVATE_KEY` | `ogpu.agent` | Scheduler role delegated by a master |
 

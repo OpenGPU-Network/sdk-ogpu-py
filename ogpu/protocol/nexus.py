@@ -15,7 +15,7 @@ classes (``Source.set_params``, ``Task.cancel``) all delegate here.
 from __future__ import annotations
 
 from ..types.enums import Role
-from ..types.metadata import ResponseParams, SourceParams
+from ..types.metadata import SourceParams
 from ..types.receipt import Receipt
 from ._base import TxExecutor, _get_web3, load_contract
 from ._signer import Signer, resolve_signer
@@ -272,48 +272,4 @@ def attempt(
         (t, p, suggested_payment),
         signer=account,
         context=f"Nexus.attempt({t}, {p})",
-    ).execute()
-
-
-def submit_response(response_params: ResponseParams, *, signer: Signer | None = None) -> Receipt:
-    """Call ``Nexus.submitResponse(responseParams)``.
-
-    Deploys a new Response contract and attaches it to the task. The
-    ``data`` field inside ``response_params`` is the on-chain record of
-    the response — typically an IPFS URL pointing at the actual payload
-    (see ``ogpu.ipfs.publish_to_ipfs``).
-
-    Must be called by the provider (or an agent authorized by the
-    provider's master). For ``FIRST_RESPONSE`` delivery, this call
-    automatically confirms and finalizes the task; for
-    ``MANUAL_CONFIRMATION``, the response enters ``SUBMITTED`` state
-    and the client must later call ``confirm_response``.
-
-    Args:
-        response_params: Pre-built ``ResponseParams`` with task,
-            provider, data URL, and payment.
-        signer: The signing key. Falls back to ``PROVIDER_PRIVATE_KEY``.
-
-    Returns:
-        ``Receipt`` for the submission. Decode ``ResponseSubmitted``
-        from the logs to get the new Response contract address.
-
-    Raises:
-        TaskExpiredError / TaskAlreadyFinalizedError: Task isn't
-            accepting new responses.
-    """
-    account = resolve_signer(signer, role=Role.PROVIDER)
-    contract = load_contract("NexusAbi")
-    params_tuple = (
-        response_params.task,
-        response_params.provider,
-        response_params.data,
-        response_params.payment,
-    )
-    return TxExecutor(
-        contract,
-        "submitResponse",
-        (params_tuple,),
-        signer=account,
-        context="Nexus.submitResponse",
     ).execute()

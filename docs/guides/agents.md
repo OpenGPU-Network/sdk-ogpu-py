@@ -87,13 +87,17 @@ The agent is a **scheduler role** — it picks which providers attempt
 which tasks. It does not produce response content. Response payloads
 come from a real compute run (the docker source executing the handler)
 and must be signed by the provider whose image produced them.
-`submit_response` is intentionally absent from `ogpu.agent`.
+`submit_response` is not exposed in `ogpu.agent` — and not in the
+broader SDK either. It only lives inside the docker source runtime,
+otherwise providers could fabricate responses without doing real work.
 
 ### Why no `setBaseData` / `setLiveData`?
 
 These Terminal functions use `msg.sender` to identify whose data is
-being set. An agent can't use them on behalf of another provider.
-Providers must call those themselves.
+being set, so an agent can't use them on behalf of another provider.
+For the same reason, the SDK does not expose them at all — provider
+self-reported state must come from the running provider runtime, not
+from an SDK script.
 
 ## Environment variable
 
