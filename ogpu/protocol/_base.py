@@ -27,6 +27,7 @@ instance classes and module-level functions. Refer to the
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable, Iterable
 from typing import Any
@@ -56,6 +57,8 @@ from ..types.errors import (
     UnbondingPeriodNotElapsedError,
 )
 from ..types.receipt import Receipt
+
+logger = logging.getLogger("ogpu.tx")
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 _DEFAULT_CHUNK_SIZE = 100
@@ -145,6 +148,7 @@ def _paginated_call(
     lower: int = 0,
     upper: int | None = None,
     chunk_size: int = _DEFAULT_CHUNK_SIZE,
+    fetch_from_zero: bool = False,
 ) -> list[Any]:
     """Fetch a range of items from a paginated contract read.
 
@@ -152,8 +156,14 @@ def _paginated_call(
     helper so they share one chunking strategy. When ``upper`` is
     ``None`` (the default on every public method that takes pagination),
     the helper calls ``count_fn()`` to determine the total and iterates
-    through ``fetch_fn(lower, min(lower + chunk_size, total))`` until
-    the full range is covered.
+    in ``chunk_size`` steps until the full range is covered.
+
+    The Python-side range is half-open (``[lower, upper)``), but the
+    on-chain getters treat **both bounds as inclusive** —
+    ``getAttempters(0, 1)`` returns indices 0 and 1, and asking for
+    index ``count`` panics with an array-out-of-bounds error (0x32).
+    Verified against deployed mainnet contracts; the translation
+    happens here so call sites and the public API stay half-open.
 
     Zero-address entries are filtered out silently — on-chain paginated
     arrays can contain sparse holes where slots were removed, and those
@@ -164,12 +174,18 @@ def _paginated_call(
         count_fn: Callable that returns the total number of items.
             Called only when ``upper is None``.
         fetch_fn: Callable ``(lower, upper) -> iterable`` that returns
-            a slice of items between the given indices.
+            the items between the given indices, both inclusive.
         lower: Start index (inclusive). Defaults to 0.
         upper: End index (exclusive). When ``None``, the full list is
             fetched via ``count_fn``.
         chunk_size: Maximum number of items to fetch in one RPC call.
             Defaults to 100.
+        fetch_from_zero: Work around getters that panic whenever the
+            lower bound is non-zero (the ``Source`` contract's
+            ``getTasks``/``getRegistrants`` index their result array
+            absolutely). Fetches ``[0, upper)`` in a single call and
+            slices client-side — no chunking is possible against these
+            getters.
 
     Returns:
         A flat list of non-zero items in the requested range.
@@ -177,11 +193,18 @@ def _paginated_call(
     if upper is None:
         upper = int(count_fn())
 
+    if upper <= lower:
+        return []
+
+    if fetch_from_zero:
+        items = list(fetch_fn(0, upper - 1))[lower:]
+        return [item for item in items if item != ZERO_ADDRESS]
+
     results: list[Any] = []
     current = lower
     while current < upper:
         chunk_end = min(current + chunk_size, upper)
-        chunk = fetch_fn(current, chunk_end)
+        chunk = fetch_fn(current, chunk_end - 1)
         for item in chunk:
             if item != ZERO_ADDRESS:
                 results.append(item)
@@ -413,28 +436,49 @@ class TxExecutor:
         last_error: Exception | None = None
 
         for attempt in range(self.max_retries):
-            nonce = NonceManager.get_nonce(self.signer.address, web3)
+            # Reserved atomically: concurrent executors on the same signer
+            # each get a distinct, consecutive nonce. Broadcasting consumes
+            # the reservation; any exit before that (including
+            # KeyboardInterrupt) must hand it back or the gap blocks every
+            # later transaction from this signer.
+            nonce = NonceManager.reserve_nonce(self.signer.address, web3)
             try:
-                fn = getattr(self.contract.functions, self.function_name)(*self.args)
-                tx_params: dict[str, Any] = {
-                    "from": self.signer.address,
-                    "nonce": nonce,
-                }
-                if self.value:
-                    tx_params["value"] = self.value
-                tx = fn.build_transaction(tx_params)
+                try:
+                    started = time.monotonic()
+                    logger.debug("[%s] building tx (nonce=%d)", self.context, nonce)
+                    fn = getattr(self.contract.functions, self.function_name)(*self.args)
+                    tx_params: dict[str, Any] = {
+                        "from": self.signer.address,
+                        "nonce": nonce,
+                    }
+                    if self.value:
+                        tx_params["value"] = self.value
+                    tx = fn.build_transaction(tx_params)
 
-                signed = web3.eth.account.sign_transaction(tx, self.signer.key)
-                tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+                    signed = web3.eth.account.sign_transaction(tx, self.signer.key)
+                    tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+                except BaseException:
+                    NonceManager.release_nonce(self.signer.address, nonce, web3)
+                    raise
+                sent_at = time.monotonic()
+                logger.debug(
+                    "[%s] tx %s sent in %.1fs", self.context, self._hex(tx_hash), sent_at - started
+                )
                 web3_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-
-                NonceManager.increment_nonce(self.signer.address, web3)
+                done_at = time.monotonic()
 
                 if int(web3_receipt["status"]) != 1:
                     raise TxRevertError(
                         reason=f"Transaction {self._hex(tx_hash)} mined but reverted"
                     )
 
+                logger.info(
+                    "[%s] mined in block %d — receipt wait %.1fs, total %.1fs",
+                    self.context,
+                    int(web3_receipt["blockNumber"]),
+                    done_at - sent_at,
+                    done_at - started,
+                )
                 return Receipt.from_web3_receipt(web3_receipt, timestamp=int(time.time()))
 
             except ContractLogicError as exc:
@@ -446,8 +490,17 @@ class TxExecutor:
             except Exception as exc:  # noqa: BLE001 — categorized below
                 last_error = exc
                 if self._is_nonce_error(exc):
+                    # release_nonce already ran; a full reset forces the
+                    # next reservation to re-read the chain.
                     NonceManager.reset_nonce(self.signer.address, web3)
                     if attempt < self.max_retries - 1:
+                        logger.warning(
+                            "[%s] nonce collision (nonce=%d), retrying %d/%d",
+                            self.context,
+                            nonce,
+                            attempt + 2,
+                            self.max_retries,
+                        )
                         continue
                     raise NonceError(
                         address=self.signer.address, tried=nonce, suggested=-1
@@ -455,6 +508,13 @@ class TxExecutor:
                 if self._is_underpriced(exc):
                     NonceManager.reset_nonce(self.signer.address, web3)
                     if attempt < self.max_retries - 1:
+                        logger.warning(
+                            "[%s] underpriced tx, backing off %ds then retrying %d/%d",
+                            self.context,
+                            _UNDERPRICED_BACKOFF_SECONDS,
+                            attempt + 2,
+                            self.max_retries,
+                        )
                         time.sleep(_UNDERPRICED_BACKOFF_SECONDS)
                         continue
                     raise GasError(reason=str(exc)) from exc

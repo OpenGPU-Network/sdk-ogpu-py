@@ -192,12 +192,15 @@ class Source:
         """
         from .task import Task
 
+        # The Source contract's getters panic when lower > 0 (absolute
+        # result indexing on-chain) — fetch from zero and slice locally.
         addresses = _paginated_call(
             count_fn=self.get_task_count,
             fetch_fn=lambda lo, hi: self._contract().functions.getTasks(lo, hi).call(),
             lower=lower,
             upper=upper,
             chunk_size=_DEFAULT_CHUNK_SIZE,
+            fetch_from_zero=True,
         )
         return [Task(addr) for addr in addresses]
 
@@ -227,6 +230,7 @@ class Source:
             lower=lower,
             upper=upper,
             chunk_size=_DEFAULT_CHUNK_SIZE,
+            fetch_from_zero=True,
         )
 
     def get_registrant_id(self, provider: str) -> int:

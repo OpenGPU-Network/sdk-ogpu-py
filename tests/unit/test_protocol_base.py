@@ -164,11 +164,42 @@ class TestPaginatedCall:
 
         def fetch(lower, upper):
             fetch_calls.append((lower, upper))
-            return [f"0x{i:040x}" for i in range(lower + 1, upper + 1)]
+            # contract semantics: both bounds inclusive
+            return [f"0x{i + 1:040x}" for i in range(lower, upper + 1)]
 
         result = _paginated_call(lambda: 10, fetch, upper=10, chunk_size=3)
         assert len(result) == 10
-        assert [c[1] - c[0] for c in fetch_calls] == [3, 3, 3, 1]
+        assert fetch_calls == [(0, 2), (3, 5), (6, 8), (9, 9)]
+
+    def test_contract_bounds_are_inclusive(self):
+        # Regression: getters panic (0x32) when asked for index == count.
+        # With count=2 the only valid full-range call is (0, 1), not (0, 2).
+        fetch = MagicMock(return_value=["0x" + "a" * 40, "0x" + "b" * 40])
+        result = _paginated_call(lambda: 2, fetch, chunk_size=100)
+        fetch.assert_called_once_with(0, 1)
+        assert len(result) == 2
+
+    def test_empty_range_makes_no_calls(self):
+        fetch = MagicMock()
+        assert _paginated_call(lambda: 0, fetch, chunk_size=10) == []
+        assert _paginated_call(lambda: 5, fetch, lower=3, upper=3) == []
+        fetch.assert_not_called()
+
+    def test_fetch_from_zero_single_call_and_slice(self):
+        # Source contract getters panic when lower > 0 — the helper must
+        # fetch the whole range from index 0 and slice client-side.
+        items = [f"0x{i + 1:040x}" for i in range(6)]
+        fetch = MagicMock(return_value=items)
+        result = _paginated_call(
+            lambda: 6, fetch, lower=2, upper=6, chunk_size=2, fetch_from_zero=True
+        )
+        fetch.assert_called_once_with(0, 5)
+        assert result == items[2:]
+
+    def test_fetch_from_zero_filters_zero_addresses(self):
+        fetch = MagicMock(return_value=[ZERO_ADDRESS, "0x" + "a" * 40])
+        result = _paginated_call(lambda: 2, fetch, fetch_from_zero=True)
+        assert result == ["0x" + "a" * 40]
 
 
 class TestLoadContract:
@@ -252,12 +283,9 @@ class TestTxExecutor:
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
             patch(
-                "ogpu.chain.nonce.NonceManager.get_nonce", return_value=5
-            ),
-            patch(
-                "ogpu.chain.nonce.NonceManager.increment_nonce"
-            ) as inc,
-            patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
+                "ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=5
+            ) as reserve,
+            patch("ogpu.chain.nonce.NonceManager.reset_nonce") as reset,
         ):
             executor = TxExecutor(
                 contract, "doThing", (42,), signer=sample_account
@@ -267,7 +295,8 @@ class TestTxExecutor:
         assert receipt.status == 1
         assert receipt.block_number == 1
         assert receipt.gas_used == 21000
-        inc.assert_called_once()
+        reserve.assert_called_once()  # the reservation IS the increment
+        reset.assert_not_called()  # broadcast succeeded — no reservation leak
 
     def test_revert_decoded(self, sample_account):
         contract, _, _ = self._make_contract()
@@ -280,8 +309,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=1),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=1),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
@@ -311,8 +339,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch(
                 "ogpu.chain.nonce.NonceManager.reset_nonce"
             ) as reset,
@@ -333,8 +360,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
@@ -360,8 +386,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
             patch("ogpu.protocol._base.time.sleep") as sleeper,
         ):
@@ -381,8 +406,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
             patch("ogpu.protocol._base.time.sleep"),
         ):
@@ -398,8 +422,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
@@ -415,8 +438,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
@@ -431,8 +453,7 @@ class TestTxExecutor:
 
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
-            patch("ogpu.chain.nonce.NonceManager.get_nonce", return_value=3),
-            patch("ogpu.chain.nonce.NonceManager.increment_nonce"),
+            patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(

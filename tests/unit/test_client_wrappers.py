@@ -136,10 +136,12 @@ class TestPublishSourceWrapper:
 class TestPublishTaskWrapper:
     def test_returns_task_instance(self, monkeypatch):
         monkeypatch.setattr("ogpu.client.publish_to_ipfs", lambda *a, **kw: "ipfs://X")
+        import time
+
         info = TaskInfo(
             source="0xSRC",
             config=TaskInput(function_name="fn", data={}),
-            expiryTime=100,
+            expiryTime=int(time.time()) + 3600,  # must be in the future: expiry guard
             payment=10,
         )
         with (

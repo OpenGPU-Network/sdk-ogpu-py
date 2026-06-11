@@ -33,16 +33,19 @@ class NonceManager:
     per-address lock for nonce reads/writes, so concurrent transactions
     from different addresses don't block each other.
 
-    The cache starts empty. On first ``get_nonce(addr)`` the cache is
-    seeded from ``eth.get_transaction_count(addr, "pending")``. Every
-    successful ``send_raw_transaction`` increments the cached nonce.
-    If the on-chain nonce jumps ahead of the cache (e.g. a tx we sent
-    got included in a block), the next ``get_nonce`` picks up the
-    higher value automatically.
+    ``TxExecutor`` allocates nonces through ``reserve_nonce``, which
+    hands out the nonce **and** advances the cache in one atomic step —
+    so N concurrent transactions from the same address receive N
+    distinct, consecutive nonces. The cached value always means "next
+    unreserved nonce"; it is reconciled against the chain's pending
+    count on every reservation, so external transactions and mined
+    blocks are picked up automatically.
 
-    Usually you don't interact with this class directly — ``TxExecutor``
-    wraps it for every write. You'd use it manually only if you're
-    building transactions by hand.
+    ``get_nonce`` is the non-reserving read (diagnostics, manual
+    transaction building). If you build and send transactions by hand
+    alongside SDK writes from the same address, use ``reserve_nonce``
+    too — otherwise your transaction and the SDK's next write will race
+    for the same nonce.
     """
 
     _nonces: dict[str, int] = {}
@@ -84,6 +87,75 @@ class NonceManager:
             else:
                 cls._nonces[address] = max(cls._nonces[address], pending_nonce)
             return cls._nonces[address]
+
+    @classmethod
+    def reserve_nonce(cls, address: str, web3: Web3) -> int:
+        """Atomically hand out the next nonce and advance the cache.
+
+        This is the allocation path used by ``TxExecutor``. Unlike
+        ``get_nonce``, the cached counter is incremented *inside the
+        same lock* that produced the value — a second caller (thread)
+        reserving before the first transaction broadcasts still gets a
+        distinct, consecutive nonce. Without this, concurrent writes
+        from one address race between read and send and collide with
+        ``replacement transaction underpriced``.
+
+        The reservation is reconciled with the chain's pending count:
+        if the chain is ahead of the cache (external wallet activity,
+        a process restart), the higher value wins. The chain cannot see
+        reservations that haven't been broadcast yet, so the cached
+        value wins while transactions are in flight.
+
+        A reserved nonce is consumed by broadcasting a transaction with
+        it. If the transaction fails *before* broadcast, the reservation
+        leaks a gap — callers must ``reset_nonce`` so the next
+        reservation re-reads the chain and fills it (``TxExecutor``
+        does this).
+
+        Args:
+            address: The EOA to reserve a nonce for.
+            web3: Connected ``Web3`` instance.
+
+        Returns:
+            The reserved nonce, exclusively owned by the caller.
+        """
+        address = web3.to_checksum_address(address)
+        lock = cls._get_lock(address)
+        with lock:
+            pending_nonce = web3.eth.get_transaction_count(address, "pending")
+            current = max(cls._nonces.get(address, pending_nonce), pending_nonce)
+            cls._nonces[address] = current + 1
+            return current
+
+    @classmethod
+    def release_nonce(cls, address: str, nonce: int, web3: Web3) -> None:
+        """Hand back a reserved nonce that was never broadcast.
+
+        Called by ``TxExecutor`` when a transaction fails *before*
+        ``send_raw_transaction`` — the reservation would otherwise leave
+        a permanent gap that blocks every later transaction from the
+        same address.
+
+        If the leaked reservation is the most recent one (the common
+        case), the counter is simply rolled back — reservations held by
+        other in-flight transactions are untouched. If reservations
+        were handed out above it, rolling back would corrupt them, so
+        the cache is dropped instead and the next reservation re-reads
+        the chain (which may briefly re-issue a nonce another thread
+        holds — the send retry logic absorbs that collision).
+
+        Args:
+            address: The EOA the nonce was reserved for.
+            nonce: The reserved-but-unused nonce being returned.
+            web3: Connected ``Web3`` instance (used for checksumming).
+        """
+        address = web3.to_checksum_address(address)
+        lock = cls._get_lock(address)
+        with lock:
+            if cls._nonces.get(address) == nonce + 1:
+                cls._nonces[address] = nonce
+            else:
+                cls._nonces.pop(address, None)
 
     @classmethod
     def increment_nonce(cls, address: str, web3: Web3) -> None:

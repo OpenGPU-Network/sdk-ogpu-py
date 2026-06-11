@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- **Verbose logging** (`ogpu.set_verbose()` / `OGPU_VERBOSE=1`) — the SDK now logs through the standard `logging` module under the `ogpu` namespace (`ogpu.ipfs`, `ogpu.tx`). Silent by default (`NullHandler`); `set_verbose()` attaches a millisecond-timestamped stderr handler. IPFS uploads/fetches and every transaction stage (build, send, receipt wait) report durations, and previously-silent nonce/underpriced retries are logged as warnings — so you can see at a glance whether a slow `publish_task` is losing time in IPFS or RPC. The env var also works from `.env`.
+
+### New Features (continued)
+
+- **Late-publish guard** — `publish_task` now refuses to send the transaction when the task's `expiryTime` has already passed, checked both before the IPFS upload and right before the transaction. A stalled pin can no longer produce an orphaned on-chain task (published late, 0 attempters, gas wasted). Raises `TaskExpiredError` and logs a warning under `ogpu.client`.
+- **Configurable IPFS timeouts** — `publish_to_ipfs` and `fetch_ipfs_json` accept a `timeout` keyword (default 30s, unchanged).
+
+### Bug Fixes
+
+- **Concurrent writes from one account collided on nonces** — `NonceManager.get_nonce` returned the cached value without advancing it (the increment happened only after the receipt), so concurrent `publish_task` calls from the same signer grabbed the same nonce and failed with `replacement transaction underpriced`. Measured on mainnet: 50% failure at 20 concurrent publishes. `TxExecutor` now allocates through the new `NonceManager.reserve_nonce`, which hands out the nonce and advances the cache in one atomic step; pre-broadcast failures reset the cache so leaked reservations get re-read from chain. After the fix: 20/20 concurrent publishes, zero retries. `increment_nonce` remains for backward compatibility but is no longer used by `TxExecutor`.
+
+- **Paginated reads panicked on real chain data** — `_paginated_call` assumed the on-chain getters take an exclusive upper bound, but the deployed contracts treat both bounds as inclusive, so every full-range read (`get_responses()`, `get_attempters()`, `get_confirmed_response()`, `Source.get_tasks()`, ...) reverted with `Panic 0x32: array out of bounds`. The helper now translates the SDK's half-open `[lower, upper)` range to inclusive contract bounds. Additionally, the `Source` contract's getters (`getTasks`, `getRegistrants`) panic whenever `lower > 0` — those reads now fetch from index 0 in a single call and slice client-side (`fetch_from_zero`). Verified against deployed mainnet contracts.
+
+### Changed
+
+- **Dependency pins relaxed** — `pyproject.toml` no longer pins exact versions (`==`). Core dependencies now use compatible ranges (`pydantic>=2.11,<3`, `web3>=7.12,<8`, ...), so the SDK no longer forces resolver conflicts or downgrades in user environments.
+- **Service deps moved to an extra** — `fastapi`, `uvicorn`, `sentry_sdk`, and `colorama` are only used by `ogpu.service` and are no longer installed by default. Source developers who serve handlers should install `pip install "ogpu[service]"`. `import ogpu` works without them; accessing `ogpu.service` without the extra raises an `ImportError` with install instructions.
+- **`requirements.txt` removed** — it duplicated (and contradicted) `pyproject.toml`. The package metadata is the single source of truth; contributors use `pip install -e ".[dev]"`.
+- **`ogpu.service` logger renamed to `"ogpu.service"`** (was `"ogpu"`) — the service module's colorized handler and INFO level now live on a child logger instead of fighting the SDK-wide `"ogpu"` root that `set_verbose()` manages. `ogpu.service.logger` keeps working unchanged; only code that did `logging.getLogger("ogpu")` expecting the service handler needs the new name.
+- **`service` removed from `ogpu.__all__`** — `from ogpu import *` no longer forces the optional service import; access `ogpu.service` (lazy) or `import ogpu.service` explicitly.
+
 ## 0.2.1
 
 ### New Features

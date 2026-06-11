@@ -14,6 +14,7 @@ v0.2.1 CHANGELOG.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -38,6 +39,31 @@ from ..types import (
     environment_names,
     parse_environments,
 )
+from ..types.errors import TaskExpiredError
+
+logger = logging.getLogger("ogpu.client")
+
+
+def _check_not_expired(expiry_time: int, stage: str) -> None:
+    """Refuse to continue publishing a task whose ``expiryTime`` has passed.
+
+    Guards against the orphaned-task failure mode: when the IPFS pin or
+    an RPC call stalls long enough that the task would land on-chain
+    already expired (or after the caller gave up), sending the
+    transaction only burns gas on a task no provider will pick up.
+    Checked before the IPFS upload (fail fast) and again right before
+    the transaction is sent (the pin itself may have eaten the budget).
+    """
+    now = int(time.time())
+    if expiry_time <= now:
+        logger.warning(
+            "publish aborted at %s: expiryTime %d already passed (now %d) — "
+            "refusing to publish a task that would be orphaned",
+            stage,
+            expiry_time,
+            now,
+        )
+        raise TaskExpiredError(task="(not published)", expiry=expiry_time)
 
 
 def _build_source_params(info: SourceInfo, client_address: str) -> SourceParams:
@@ -202,6 +228,10 @@ def publish_task(
         InsufficientBalanceError: If the client's vault balance is
             insufficient to cover the task payment.
         IPFSGatewayError / IPFSFetchError: If the config upload fails.
+        TaskExpiredError: If ``expiryTime`` has already passed — checked
+            before the IPFS upload and again right before the
+            transaction is sent, so a stalled pin can never produce an
+            on-chain task that is already expired (orphaned, gas wasted).
 
     Example:
         ```python
@@ -222,7 +252,9 @@ def publish_task(
     from ..protocol.controller import publish_task as _publish_task
 
     account = resolve_signer(private_key, role=Role.CLIENT)
+    _check_not_expired(task_info.expiryTime, stage="start")
     params = _build_task_params(task_info)
+    _check_not_expired(task_info.expiryTime, stage="pre-transaction (after IPFS pin)")
     receipt = _publish_task(params, signer=account)
     addr = extract_task_address(receipt)
     return Task(addr)
