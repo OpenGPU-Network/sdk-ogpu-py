@@ -8,10 +8,19 @@ from . import config
 
 init(autoreset=True)
 
-logger = logging.getLogger("ogpu")
+# Child of the SDK-wide "ogpu" logger (see ogpu/_logging.py). Must NOT
+# be the root "ogpu" logger itself: this module sets its own handler,
+# format, and INFO level, which would clobber `ogpu.set_verbose()` and
+# the NullHandler convention for the rest of the SDK.
+logger = logging.getLogger("ogpu.service")
+# This logger fully owns its formatting — don't also propagate records
+# up to the "ogpu" root (they'd print twice when verbose is on).
+logger.propagate = False
 
 
-if not logger.hasHandlers():
+# Own handlers only — hasHandlers() walks ancestors and would see the
+# NullHandler on "ogpu", skipping this handler entirely.
+if not logger.handlers:
     handler = logging.StreamHandler()
 
     class PartyFormatter(logging.Formatter):

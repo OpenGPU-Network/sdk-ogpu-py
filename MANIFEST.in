@@ -1,3 +1,2 @@
 include README.md
-include requirements.txt
-recursive-include ogpu/client/abis *.json
+recursive-include ogpu/chain/abis *.json
