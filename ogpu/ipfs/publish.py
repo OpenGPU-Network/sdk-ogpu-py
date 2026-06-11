@@ -14,11 +14,15 @@ resolve.
 from __future__ import annotations
 
 import json
+import logging
+import time
 from typing import Any
 
 import requests
 
 from ..types.errors import IPFSFetchError, IPFSGatewayError
+
+logger = logging.getLogger("ogpu.ipfs")
 
 _IPFS_PUBLISH_URL = "https://capi.ogpuscan.io/file/create"
 
@@ -27,6 +31,7 @@ def publish_to_ipfs(
     data: str | dict[str, Any],
     filename: str = "data.json",
     content_type: str = "application/json",
+    timeout: float = 30,
 ) -> str:
     """Publish ``data`` to IPFS via the OGPU pinning service.
 
@@ -49,6 +54,9 @@ def publish_to_ipfs(
             does not include this name.
         content_type: MIME type to send with the upload. Defaults to
             ``application/json``.
+        timeout: Per-request cap in seconds for the upload. A stalled
+            endpoint raises ``IPFSFetchError`` after this long instead
+            of blocking. Defaults to 30.
 
     Returns:
         Gateway URL (string) pointing at the pinned content.
@@ -83,12 +91,22 @@ def publish_to_ipfs(
     content = json.dumps(data) if isinstance(data, dict) else data
     files = {"file": (filename, content, content_type)}
 
+    logger.debug("publishing %s (%d bytes) to IPFS...", filename, len(content))
+    started = time.monotonic()
     try:
-        response = requests.post(_IPFS_PUBLISH_URL, files=files, timeout=30)
+        response = requests.post(_IPFS_PUBLISH_URL, files=files, timeout=timeout)
     except requests.RequestException as exc:
+        logger.warning(
+            "IPFS publish failed after %.1fs: %s", time.monotonic() - started, exc
+        )
         raise IPFSFetchError(url=_IPFS_PUBLISH_URL, reason=str(exc)) from exc
 
     if response.status_code not in (200, 201):
+        logger.warning(
+            "IPFS publish rejected after %.1fs: HTTP %d",
+            time.monotonic() - started,
+            response.status_code,
+        )
         raise IPFSGatewayError(gateway=_IPFS_PUBLISH_URL, status_code=response.status_code)
 
     try:
@@ -97,4 +115,5 @@ def publish_to_ipfs(
         raise IPFSGatewayError(
             gateway=_IPFS_PUBLISH_URL, status_code=response.status_code
         ) from exc
+    logger.info("IPFS pin ok in %.1fs → %s", time.monotonic() - started, link)
     return str(link)

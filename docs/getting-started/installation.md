@@ -14,6 +14,16 @@
     pip install ogpu
     ```
 
+=== "pip + service"
+
+    ```bash
+    pip install "ogpu[service]"
+    ```
+
+    Adds the dependencies for `ogpu.service` (FastAPI, uvicorn, ...) —
+    only needed if you serve handler functions as a source developer.
+    The core SDK (`ogpu.client`, `ogpu.agent`, etc.) works without it.
+
 === "pip + examples"
 
     ```bash
@@ -54,6 +64,7 @@ act as.
 | `PROVIDER_PRIVATE_KEY` | provider-side writes | announce_master, register, attempt |
 | `MASTER_PRIVATE_KEY` | master-side writes | announce_provider, remove_provider, set_agent |
 | `AGENT_PRIVATE_KEY` | `ogpu.agent` | Scheduler role delegated by a master |
+| `OGPU_VERBOSE` | all modules | Set to `1` to enable verbose SDK logging (same as `ogpu.set_verbose()`) — stage-by-stage timings for IPFS uploads and transactions |
 
 The SDK searches for a `.env` file in this order on import:
 

@@ -14,7 +14,11 @@ The SDK is split into:
 
 from __future__ import annotations
 
-from . import agent, chain, client, events, ipfs, protocol, service, types
+import importlib
+from typing import Any
+
+from . import agent, chain, client, events, ipfs, protocol, types
+from ._logging import _apply_env_verbose, set_verbose
 from .chain import (
     ChainConfig,
     ChainId,
@@ -25,14 +29,29 @@ from .chain import (
 )
 from .ipfs import fetch_ipfs_json, publish_to_ipfs
 
+# ``ogpu.chain`` (imported above) has already run load_dotenv, so a
+# ``.env``-provided OGPU_VERBOSE is visible here.
+_apply_env_verbose()
+
+
+def __getattr__(name: str) -> Any:
+    # ``ogpu.service`` needs the optional ``ogpu[service]`` extras
+    # (fastapi, uvicorn, ...), so it must not be imported eagerly here.
+    if name == "service":
+        return importlib.import_module(".service", __name__)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
+    # "service" is intentionally NOT listed: star-import resolves every
+    # __all__ name, which would force the lazy service import (and its
+    # optional deps) on users who installed without the [service] extra.
     "agent",
     "chain",
     "client",
     "events",
     "ipfs",
     "protocol",
-    "service",
     "types",
     "ChainConfig",
     "ChainId",
@@ -42,4 +61,5 @@ __all__ = [
     "get_nonce_info",
     "publish_to_ipfs",
     "fetch_ipfs_json",
+    "set_verbose",
 ]

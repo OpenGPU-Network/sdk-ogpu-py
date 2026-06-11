@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 from typing import Any
 
 import requests
 
 from ..types.errors import IPFSFetchError, IPFSGatewayError
 
+logger = logging.getLogger("ogpu.ipfs")
 
-def fetch_ipfs_json(url: str) -> dict[str, Any]:
+
+def fetch_ipfs_json(url: str, timeout: float = 30) -> dict[str, Any]:
     """GET an IPFS gateway URL and parse the body as JSON.
 
     Used by ``Source.get_metadata``, ``Task.get_metadata``, and
@@ -30,6 +34,9 @@ def fetch_ipfs_json(url: str) -> dict[str, Any]:
 
     Args:
         url: The gateway URL to fetch. Must respond with JSON.
+        timeout: Per-request cap in seconds. A stalled gateway raises
+            ``IPFSFetchError`` after this long instead of blocking.
+            Defaults to 30.
 
     Returns:
         The parsed JSON body as a dict.
@@ -55,13 +62,22 @@ def fetch_ipfs_json(url: str) -> dict[str, Any]:
         payload = response.fetch_data()
         ```
     """
+    logger.debug("fetching %s ...", url)
+    started = time.monotonic()
     try:
-        response = requests.get(url, timeout=30)
+        response = requests.get(url, timeout=timeout)
     except requests.RequestException as exc:
+        logger.warning("IPFS fetch failed after %.1fs: %s", time.monotonic() - started, exc)
         raise IPFSFetchError(url=url, reason=str(exc)) from exc
 
     if response.status_code != 200:
+        logger.warning(
+            "IPFS fetch rejected after %.1fs: HTTP %d",
+            time.monotonic() - started,
+            response.status_code,
+        )
         raise IPFSGatewayError(gateway=url, status_code=response.status_code)
+    logger.debug("IPFS fetch ok in %.1fs (%d bytes)", time.monotonic() - started, len(response.content))
 
     try:
         data: dict[str, Any] = response.json()
