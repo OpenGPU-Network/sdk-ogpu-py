@@ -1,13 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.2
 
 ### New Features
 
 - **Verbose logging** (`ogpu.set_verbose()` / `OGPU_VERBOSE=1`) — the SDK now logs through the standard `logging` module under the `ogpu` namespace (`ogpu.ipfs`, `ogpu.tx`). Silent by default (`NullHandler`); `set_verbose()` attaches a millisecond-timestamped stderr handler. IPFS uploads/fetches and every transaction stage (build, send, receipt wait) report durations, and previously-silent nonce/underpriced retries are logged as warnings — so you can see at a glance whether a slow `publish_task` is losing time in IPFS or RPC. The env var also works from `.env`.
-
-### New Features (continued)
-
 - **Late-publish guard** — `publish_task` now refuses to send the transaction when the task's `expiryTime` has already passed, checked both before the IPFS upload and right before the transaction. A stalled pin can no longer produce an orphaned on-chain task (published late, 0 attempters, gas wasted). Raises `TaskExpiredError` and logs a warning under `ogpu.client`.
 - **Configurable IPFS timeouts** — `publish_to_ipfs` and `fetch_ipfs_json` accept a `timeout` keyword (default 30s, unchanged).
 
