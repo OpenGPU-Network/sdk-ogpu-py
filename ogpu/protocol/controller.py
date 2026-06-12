@@ -24,6 +24,9 @@ def publish_task(
     params: TaskParams,
     *,
     signer: Signer | None = None,
+    receipt_timeout: float = 120,
+    deadline: float | None = None,
+    budget: float | None = None,
 ) -> Receipt:
     """Call ``Controller.publishTask(params)`` to publish a new task.
 
@@ -42,6 +45,13 @@ def publish_task(
             pointing at an IPFS-hosted ``TaskInput`` JSON.
         signer: Client signer. Falls back to ``CLIENT_PRIVATE_KEY``
             env var.
+        receipt_timeout: Cap in seconds on the receipt wait. Defaults
+            to 120 (explicit — never web3's implicit default).
+        deadline: Absolute ``time.monotonic()`` cutoff from the caller's
+            total publish budget; the transaction is never broadcast
+            past it.
+        budget: The original total budget in seconds — used only for
+            error messages.
 
     Returns:
         ``Receipt`` for the published task.
@@ -51,6 +61,9 @@ def publish_task(
         InsufficientBalanceError: If the client doesn't have enough
             vault balance to cover the task's payment.
         MissingSignerError: If no signer is available.
+        TxReceiptTimeoutError: No receipt within ``receipt_timeout`` —
+            the tx was broadcast; reconcile via the error's ``tx_hash``.
+        PublishTimeoutError: ``deadline`` expired before broadcast.
     """
     account = resolve_signer(signer, role=Role.CLIENT)
     contract = load_contract("ControllerAbi")
@@ -60,6 +73,9 @@ def publish_task(
         (params.to_tuple(),),
         signer=account,
         context="Controller.publishTask",
+        receipt_timeout=receipt_timeout,
+        deadline=deadline,
+        budget=budget,
     ).execute()
 
 

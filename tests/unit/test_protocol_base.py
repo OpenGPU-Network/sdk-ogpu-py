@@ -28,6 +28,7 @@ from ogpu.types.errors import (
     TaskAlreadyFinalizedError,
     TaskExpiredError,
     TxRevertError,
+    TxRpcError,
 )
 
 _HEX_KEY = "0x" + "11" * 32
@@ -431,7 +432,9 @@ class TestTxExecutor:
             with pytest.raises(TxRevertError):
                 executor.execute()
 
-    def test_non_retryable_exception_bubbles(self, sample_account):
+    def test_non_retryable_exception_wrapped_as_typed(self, sample_account):
+        # F4: no raw exception escapes — unknown failures surface as
+        # TxRpcError with the original chained as __cause__.
         contract, _, _ = self._make_contract()
         web3 = self._setup_web3()
         web3.eth.send_raw_transaction.side_effect = RuntimeError("something else")
@@ -439,13 +442,15 @@ class TestTxExecutor:
         with (
             patch("ogpu.protocol._base._get_web3", return_value=web3),
             patch("ogpu.chain.nonce.NonceManager.reserve_nonce", return_value=3),
+            patch("ogpu.chain.nonce.NonceManager.release_nonce"),
             patch("ogpu.chain.nonce.NonceManager.reset_nonce"),
         ):
             executor = TxExecutor(
                 contract, "doThing", (), signer=sample_account
             )
-            with pytest.raises(RuntimeError, match="something else"):
+            with pytest.raises(TxRpcError, match="something else") as exc_info:
                 executor.execute()
+        assert isinstance(exc_info.value.__cause__, RuntimeError)
 
     def test_value_passed_for_payable(self, sample_account):
         contract, _, fn = self._make_contract()

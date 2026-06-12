@@ -122,7 +122,14 @@ def _build_source_params(info: SourceInfo, client_address: str) -> SourceParams:
     )
 
 
-def _build_task_params(info: TaskInfo) -> TaskParams:
+def _build_task_params(
+    info: TaskInfo,
+    *,
+    ipfs_timeout: float = 30,
+    ipfs_retries: int = 2,
+    ipfs_backoff: float = 0.5,
+    deadline: float | None = None,
+) -> TaskParams:
     """Upload task config to IPFS and build the on-chain params tuple.
 
     Internal helper. Takes a user-facing ``TaskInfo`` dataclass, uploads
@@ -131,12 +138,25 @@ def _build_task_params(info: TaskInfo) -> TaskParams:
 
     Args:
         info: User-facing task builder.
+        ipfs_timeout: Per-attempt cap for the IPFS upload, seconds.
+        ipfs_retries: Total attempts on transient IPFS failures.
+        ipfs_backoff: Base sleep between IPFS attempts, seconds.
+        deadline: Absolute ``time.monotonic()`` cutoff from the caller's
+            total publish budget.
 
     Returns:
         A ``TaskParams`` with ``config`` pointing at the freshly-uploaded
         task config URL.
     """
-    config_url = publish_to_ipfs(info.config.to_dict(), "taskConfig.json", "application/json")
+    config_url = publish_to_ipfs(
+        info.config.to_dict(),
+        "taskConfig.json",
+        "application/json",
+        timeout=ipfs_timeout,
+        retries=ipfs_retries,
+        backoff=ipfs_backoff,
+        _deadline=deadline,
+    )
     return TaskParams(
         source=info.source,
         config=config_url,
@@ -206,6 +226,12 @@ def publish_source(
 def publish_task(
     task_info: TaskInfo,
     private_key: str | None = None,
+    *,
+    ipfs_timeout: float = 30,
+    ipfs_retries: int = 2,
+    ipfs_backoff: float = 0.5,
+    receipt_timeout: float = 120,
+    total_timeout: float | None = None,
     **_ignored: Any,
 ) -> Task:
     """Publish a new task to the OGPU network.
@@ -214,10 +240,28 @@ def publish_task(
     ``Controller.publishTask`` via ``TxExecutor``, and wraps the new
     task address in a ``Task`` instance.
 
+    Every leg of the publish is bounded: the IPFS pin by
+    ``ipfs_timeout`` × ``ipfs_retries``, the receipt wait by
+    ``receipt_timeout``, and (optionally) the whole call by
+    ``total_timeout`` — set it and ``publish_task`` always returns or
+    raises within that budget, never broadcasting a transaction the
+    budget no longer covers.
+
     Args:
         task_info: User-facing ``TaskInfo`` with source address,
             ``TaskInput`` config, expiry time, and payment.
         private_key: Client signer. Falls back to ``CLIENT_PRIVATE_KEY``.
+        ipfs_timeout: Per-attempt cap for the IPFS pin, seconds.
+            Defaults to 30.
+        ipfs_retries: Total IPFS attempts on transient failures
+            (connection error, timeout, 5xx). Defaults to 2.
+        ipfs_backoff: Base sleep between IPFS attempts, doubled each
+            retry. Defaults to 0.5.
+        receipt_timeout: Cap on the transaction receipt wait, seconds.
+            Defaults to 120.
+        total_timeout: Optional single budget in seconds covering pin
+            (including retries) + send + receipt. ``None`` (default)
+            disables the budget.
 
     Returns:
         A ``Task`` instance bound to the new contract address.
@@ -232,6 +276,13 @@ def publish_task(
             before the IPFS upload and again right before the
             transaction is sent, so a stalled pin can never produce an
             on-chain task that is already expired (orphaned, gas wasted).
+        TxReceiptTimeoutError: No receipt within ``receipt_timeout`` —
+            the transaction WAS broadcast and may still be mined;
+            reconcile via the error's ``tx_hash`` before retrying.
+        PublishTimeoutError: ``total_timeout`` expired before the
+            transaction was broadcast (no gas spent).
+        TxRpcError: Unmapped RPC/transport failure (transient variants
+            are retried internally first).
 
     Example:
         ```python
@@ -251,11 +302,25 @@ def publish_task(
     from ..protocol.controller import extract_task_address
     from ..protocol.controller import publish_task as _publish_task
 
+    deadline = time.monotonic() + total_timeout if total_timeout is not None else None
+
     account = resolve_signer(private_key, role=Role.CLIENT)
     _check_not_expired(task_info.expiryTime, stage="start")
-    params = _build_task_params(task_info)
+    params = _build_task_params(
+        task_info,
+        ipfs_timeout=ipfs_timeout,
+        ipfs_retries=ipfs_retries,
+        ipfs_backoff=ipfs_backoff,
+        deadline=deadline,
+    )
     _check_not_expired(task_info.expiryTime, stage="pre-transaction (after IPFS pin)")
-    receipt = _publish_task(params, signer=account)
+    receipt = _publish_task(
+        params,
+        signer=account,
+        receipt_timeout=receipt_timeout,
+        deadline=deadline,
+        budget=total_timeout,
+    )
     addr = extract_task_address(receipt)
     return Task(addr)
 

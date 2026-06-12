@@ -28,6 +28,7 @@ instance classes and module-level functions. Refer to the
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections.abc import Callable, Iterable
 from typing import Any
@@ -35,7 +36,7 @@ from typing import Any
 from eth_account.signers.local import LocalAccount
 from web3 import Web3
 from web3.contract import Contract
-from web3.exceptions import ContractLogicError
+from web3.exceptions import ContractLogicError, TimeExhausted
 
 from ..types.errors import (
     GasError,
@@ -48,12 +49,14 @@ from ..types.errors import (
     NotSourceOwnerError,
     NotTaskOwnerError,
     OGPUError,
+    PublishTimeoutError,
     ResponseAlreadyConfirmedError,
     SourceInactiveError,
     TaskAlreadyFinalizedError,
     TaskExpiredError,
-    TxError,
+    TxReceiptTimeoutError,
     TxRevertError,
+    TxRpcError,
     UnbondingPeriodNotElapsedError,
 )
 from ..types.receipt import Receipt
@@ -70,6 +73,18 @@ _NONCE_ERROR_SUBSTRINGS = (
 )
 _UNDERPRICED_SUBSTRING = "replacement transaction underpriced"
 _UNDERPRICED_BACKOFF_SECONDS = 5
+# RPC/transport blips worth one more try before giving up — lagging
+# load-balanced replicas ("block 0x... not found") and dropped
+# connections, both observed against the deployed mainnet RPC under load.
+_TRANSIENT_RPC_PATTERNS = (
+    re.compile(r"block\s+\S*\s*not found"),
+    re.compile(r"connection aborted"),
+    re.compile(r"remote end closed connection"),
+    re.compile(r"connection reset"),
+    re.compile(r"read timed out"),
+)
+_TRANSIENT_RPC_BACKOFF_SECONDS = 1
+_DEFAULT_RECEIPT_TIMEOUT = 120
 
 _SINGLETON_ABI_TO_KEY: dict[str, str] = {
     "NexusAbi": "NEXUS",
@@ -393,6 +408,9 @@ class TxExecutor:
         value: int = 0,
         context: str | None = None,
         max_retries: int = 3,
+        receipt_timeout: float = _DEFAULT_RECEIPT_TIMEOUT,
+        deadline: float | None = None,
+        budget: float | None = None,
     ) -> None:
         self.contract = contract
         self.function_name = function_name
@@ -401,6 +419,15 @@ class TxExecutor:
         self.value = value
         self.context = context or f"{contract.address}.{function_name}"
         self.max_retries = max(1, max_retries)
+        # receipt_timeout: explicit cap on wait_for_transaction_receipt —
+        #   never rely on web3's implicit default.
+        # deadline: absolute time.monotonic() cutoff from the caller's
+        #   total budget. Checked before every broadcast (a publish the
+        #   caller gave up on must not cost gas) and caps the receipt wait.
+        # budget: the original budget in seconds, only for error messages.
+        self.receipt_timeout = receipt_timeout
+        self.deadline = deadline
+        self.budget = budget
 
     def execute(self) -> Receipt:
         """Build, sign, broadcast, and wait for the transaction.
@@ -429,6 +456,13 @@ class TxExecutor:
                 ``UnbondingPeriodNotElapsedError``, ``NotEligibleError``).
             NonceError: Nonce collision exhausted all retries.
             GasError: Underpriced transaction couldn't be recovered.
+            TxReceiptTimeoutError: Receipt didn't arrive within
+                ``receipt_timeout`` — the tx was broadcast and may still
+                be mined; reconcile via the error's ``tx_hash``.
+            PublishTimeoutError: The caller's ``deadline`` expired before
+                the transaction was broadcast (no gas spent).
+            TxRpcError: Unmapped RPC/transport failure — transient
+                variants are retried first.
         """
         from ..chain.nonce import NonceManager
 
@@ -436,12 +470,20 @@ class TxExecutor:
         last_error: Exception | None = None
 
         for attempt in range(self.max_retries):
+            # Never broadcast past the caller's budget: a task the caller
+            # has already given up on must not land on-chain.
+            if self.deadline is not None and time.monotonic() >= self.deadline:
+                raise PublishTimeoutError(
+                    budget=self.budget or 0.0, stage="pre-transaction"
+                )
+
             # Reserved atomically: concurrent executors on the same signer
             # each get a distinct, consecutive nonce. Broadcasting consumes
             # the reservation; any exit before that (including
             # KeyboardInterrupt) must hand it back or the gap blocks every
             # later transaction from this signer.
             nonce = NonceManager.reserve_nonce(self.signer.address, web3)
+            broadcast = False
             try:
                 try:
                     started = time.monotonic()
@@ -456,7 +498,12 @@ class TxExecutor:
                     tx = fn.build_transaction(tx_params)
 
                     signed = web3.eth.account.sign_transaction(tx, self.signer.key)
+                    if self.deadline is not None and time.monotonic() >= self.deadline:
+                        raise PublishTimeoutError(
+                            budget=self.budget or 0.0, stage="pre-transaction"
+                        )
                     tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+                    broadcast = True
                 except BaseException:
                     NonceManager.release_nonce(self.signer.address, nonce, web3)
                     raise
@@ -464,7 +511,19 @@ class TxExecutor:
                 logger.debug(
                     "[%s] tx %s sent in %.1fs", self.context, self._hex(tx_hash), sent_at - started
                 )
-                web3_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+                receipt_timeout = self.receipt_timeout
+                if self.deadline is not None:
+                    receipt_timeout = min(
+                        receipt_timeout, max(self.deadline - time.monotonic(), 1.0)
+                    )
+                try:
+                    web3_receipt = web3.eth.wait_for_transaction_receipt(
+                        tx_hash, timeout=receipt_timeout
+                    )
+                except TimeExhausted as exc:
+                    raise TxReceiptTimeoutError(
+                        tx_hash=self._hex(tx_hash), timeout=receipt_timeout
+                    ) from exc
                 done_at = time.monotonic()
 
                 if int(web3_receipt["status"]) != 1:
@@ -484,7 +543,8 @@ class TxExecutor:
             except ContractLogicError as exc:
                 raise decode_revert(exc, context=self.context, caller=self.signer.address) from exc
 
-            except TxError:
+            except OGPUError:
+                # already typed — pass through unwrapped
                 raise
 
             except Exception as exc:  # noqa: BLE001 — categorized below
@@ -518,10 +578,28 @@ class TxExecutor:
                         time.sleep(_UNDERPRICED_BACKOFF_SECONDS)
                         continue
                     raise GasError(reason=str(exc)) from exc
-                raise
+                if (
+                    self._is_transient_rpc(exc)
+                    and not broadcast
+                    and attempt < self.max_retries - 1
+                ):
+                    # lagging replica / dropped connection before the tx
+                    # went out — safe to retry. Post-broadcast transport
+                    # errors are NOT retried: re-sending could publish twice.
+                    logger.warning(
+                        "[%s] transient RPC error, retrying %d/%d: %s",
+                        self.context,
+                        attempt + 2,
+                        self.max_retries,
+                        exc,
+                    )
+                    time.sleep(_TRANSIENT_RPC_BACKOFF_SECONDS)
+                    continue
+                # F4: no raw web3/requests exception escapes the SDK
+                raise TxRpcError(reason=str(exc)) from exc
 
         assert last_error is not None
-        raise last_error
+        raise TxRpcError(reason=str(last_error)) from last_error
 
     @staticmethod
     def _is_nonce_error(exc: BaseException) -> bool:
@@ -531,6 +609,11 @@ class TxExecutor:
     @staticmethod
     def _is_underpriced(exc: BaseException) -> bool:
         return _UNDERPRICED_SUBSTRING in str(exc).lower()
+
+    @staticmethod
+    def _is_transient_rpc(exc: BaseException) -> bool:
+        msg = str(exc).lower()
+        return any(p.search(msg) for p in _TRANSIENT_RPC_PATTERNS)
 
     @staticmethod
     def _hex(tx_hash: Any) -> str:

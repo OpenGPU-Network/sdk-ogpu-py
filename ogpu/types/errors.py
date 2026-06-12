@@ -435,6 +435,70 @@ class GasError(TxError):
         super().__init__(f"Gas error: {reason}")
 
 
+class TxReceiptTimeoutError(TxError):
+    """Receipt did not arrive within ``receipt_timeout`` after broadcast.
+
+    **The transaction was broadcast and may still be mined** — this is a
+    visibility timeout, not a failure. Use the ``tx_hash`` attribute to
+    reconcile: poll ``web3.eth.get_transaction_receipt(tx_hash)`` or look
+    the hash up in the explorer before assuming the publish failed and
+    retrying (a blind retry can double-publish).
+
+    Attributes:
+        tx_hash: Hash of the broadcast transaction, hex string.
+        timeout: Seconds the SDK waited for the receipt.
+    """
+
+    def __init__(self, tx_hash: str, timeout: float) -> None:
+        self.tx_hash = tx_hash
+        self.timeout = timeout
+        super().__init__(
+            f"No receipt for transaction {tx_hash} within {timeout:.0f}s — "
+            f"the transaction was broadcast and may still be mined"
+        )
+
+
+class TxRpcError(TxError):
+    """Unmapped RPC/transport failure during a transaction.
+
+    Raised when the RPC node misbehaves in a way the SDK has no more
+    specific type for — connection drops, lagging replicas (``block not
+    found``), malformed responses. Transient variants are retried by
+    ``TxExecutor`` before this is raised; the original exception is
+    always chained as ``__cause__``.
+
+    Attributes:
+        reason: Human-readable description of the failure.
+    """
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"RPC error: {reason}")
+
+
+class PublishTimeoutError(OGPUError):
+    """The total publish budget (``total_timeout``) was exhausted.
+
+    Raised by ``client.publish_task`` when the combined pin + send +
+    receipt work cannot finish within the caller's ``total_timeout``.
+    Raised **before** the transaction is broadcast whenever possible, so
+    no gas is spent on a publish the caller has already given up on.
+
+    Attributes:
+        budget: The total budget in seconds.
+        stage: Which leg the budget ran out in (``"ipfs"``,
+            ``"pre-transaction"``, ...).
+    """
+
+    def __init__(self, budget: float, stage: str) -> None:
+        self.budget = budget
+        self.stage = stage
+        super().__init__(
+            f"Publish did not complete within the {budget:.0f}s total budget "
+            f"(ran out during: {stage})"
+        )
+
+
 class InvalidRpcUrlError(TxError):
     """RPC URL is not reachable or failed the connectivity probe.
 

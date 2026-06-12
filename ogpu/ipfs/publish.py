@@ -32,6 +32,9 @@ def publish_to_ipfs(
     filename: str = "data.json",
     content_type: str = "application/json",
     timeout: float = 30,
+    retries: int = 2,
+    backoff: float = 0.5,
+    _deadline: float | None = None,
 ) -> str:
     """Publish ``data`` to IPFS via the OGPU pinning service.
 
@@ -54,9 +57,18 @@ def publish_to_ipfs(
             does not include this name.
         content_type: MIME type to send with the upload. Defaults to
             ``application/json``.
-        timeout: Per-request cap in seconds for the upload. A stalled
+        timeout: Per-attempt cap in seconds for the upload. A stalled
             endpoint raises ``IPFSFetchError`` after this long instead
             of blocking. Defaults to 30.
+        retries: Total attempts on *transient* failures — connection
+            errors, timeouts, and 5xx responses. 4xx responses and
+            malformed bodies fail immediately without retry. Defaults
+            to 2.
+        backoff: Base sleep in seconds between attempts, doubled each
+            retry. Defaults to 0.5.
+        _deadline: Internal — absolute ``time.monotonic()`` deadline set
+            by ``publish_task``'s ``total_timeout``. Attempts and
+            backoffs never run past it.
 
     Returns:
         Gateway URL (string) pointing at the pinned content.
@@ -90,30 +102,78 @@ def publish_to_ipfs(
     """
     content = json.dumps(data) if isinstance(data, dict) else data
     files = {"file": (filename, content, content_type)}
+    attempts = max(1, retries)
 
-    logger.debug("publishing %s (%d bytes) to IPFS...", filename, len(content))
-    started = time.monotonic()
-    try:
-        response = requests.post(_IPFS_PUBLISH_URL, files=files, timeout=timeout)
-    except requests.RequestException as exc:
-        logger.warning(
-            "IPFS publish failed after %.1fs: %s", time.monotonic() - started, exc
+    def _remaining() -> float | None:
+        if _deadline is None:
+            return None
+        return _deadline - time.monotonic()
+
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        effective_timeout = timeout
+        remaining = _remaining()
+        if remaining is not None:
+            if remaining <= 0:
+                break  # budget exhausted — raise below with the last error
+            effective_timeout = min(timeout, remaining)
+
+        logger.debug(
+            "publishing %s (%d bytes) to IPFS (attempt %d/%d)...",
+            filename,
+            len(content),
+            attempt,
+            attempts,
         )
-        raise IPFSFetchError(url=_IPFS_PUBLISH_URL, reason=str(exc)) from exc
+        started = time.monotonic()
+        try:
+            response = requests.post(_IPFS_PUBLISH_URL, files=files, timeout=effective_timeout)
+        except requests.RequestException as exc:
+            last_error = exc
+            logger.warning(
+                "IPFS publish attempt %d/%d failed after %.1fs: %s",
+                attempt,
+                attempts,
+                time.monotonic() - started,
+                exc,
+            )
+        else:
+            if response.status_code in (200, 201):
+                try:
+                    link = response.json()["link"]
+                except (json.JSONDecodeError, KeyError) as exc:
+                    # malformed success body — not transient, no retry
+                    raise IPFSGatewayError(
+                        gateway=_IPFS_PUBLISH_URL, status_code=response.status_code
+                    ) from exc
+                logger.info("IPFS pin ok in %.1fs → %s", time.monotonic() - started, link)
+                return str(link)
 
-    if response.status_code not in (200, 201):
-        logger.warning(
-            "IPFS publish rejected after %.1fs: HTTP %d",
-            time.monotonic() - started,
-            response.status_code,
-        )
-        raise IPFSGatewayError(gateway=_IPFS_PUBLISH_URL, status_code=response.status_code)
+            logger.warning(
+                "IPFS publish attempt %d/%d rejected after %.1fs: HTTP %d",
+                attempt,
+                attempts,
+                time.monotonic() - started,
+                response.status_code,
+            )
+            if response.status_code < 500:
+                # 4xx — the request itself is bad, retrying won't help
+                raise IPFSGatewayError(
+                    gateway=_IPFS_PUBLISH_URL, status_code=response.status_code
+                )
+            last_error = IPFSGatewayError(
+                gateway=_IPFS_PUBLISH_URL, status_code=response.status_code
+            )
 
-    try:
-        link = response.json()["link"]
-    except (json.JSONDecodeError, KeyError) as exc:
-        raise IPFSGatewayError(
-            gateway=_IPFS_PUBLISH_URL, status_code=response.status_code
-        ) from exc
-    logger.info("IPFS pin ok in %.1fs → %s", time.monotonic() - started, link)
-    return str(link)
+        if attempt < attempts:
+            sleep_for = backoff * (2 ** (attempt - 1))
+            remaining = _remaining()
+            if remaining is not None:
+                sleep_for = min(sleep_for, max(remaining, 0))
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+
+    if isinstance(last_error, IPFSGatewayError):
+        raise last_error
+    reason = str(last_error) if last_error else "publish budget exhausted before any attempt"
+    raise IPFSFetchError(url=_IPFS_PUBLISH_URL, reason=reason) from last_error

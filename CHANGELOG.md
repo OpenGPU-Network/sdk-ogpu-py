@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.3
+
+Bounded & typed task-publish path: every leg of `publish_task` (IPFS pin, send, receipt wait) is now time-bounded, configurable, and fails with a typed error.
+
+### New Features
+
+- **IPFS pin retry** — `publish_to_ipfs(..., retries=2, backoff=0.5)`: transient failures (connection error, timeout, 5xx) are retried with exponential backoff; 4xx and malformed bodies fail immediately without retry. Reachable from `publish_task` via `ipfs_timeout=` / `ipfs_retries=` / `ipfs_backoff=` — the pin still happens exactly once per call.
+- **Bounded receipt wait** — `publish_task(..., receipt_timeout=120)` caps `wait_for_transaction_receipt` explicitly (never web3's implicit default) and raises `TxReceiptTimeoutError` on expiry. The error carries `tx_hash`: the transaction WAS broadcast and may still be mined — reconcile before retrying.
+- **Total publish budget** — `publish_task(..., total_timeout=B)`: one budget covering pin (incl. retries) + send + receipt. The call returns or raises within `B`; the transaction is never broadcast once the budget is exhausted (`PublishTimeoutError`, no gas spent), and the receipt wait is capped by the remaining budget.
+- **Typed errors on every leg** — no raw `requests`/`web3` exception escapes `publish_task`. New types: `TxReceiptTimeoutError`, `TxRpcError` (unmapped RPC/transport failures, original chained as `__cause__`), `PublishTimeoutError`. Transient RPC blips observed on mainnet under load (`block 0x... not found` from lagging replicas, dropped connections) are retried once before `TxRpcError` is raised — post-broadcast transport errors are never retried (a blind re-send could double-publish).
+
+### Notes
+
+- Defaults: `ipfs_timeout=30`, `ipfs_retries=2`, `ipfs_backoff=0.5`, `receipt_timeout=120`, `total_timeout=None` (budget opt-in). All knobs are per-call keyword args.
+- `private_key=` (raw hex) stays accepted on `publish_task`.
+- All 0.2.2 import paths and dependency ranges unchanged.
+
 ## 0.2.2
 
 ### New Features

@@ -219,7 +219,7 @@ class TestSlowRpcVisibility:
         web3.eth.account.sign_transaction.return_value = MagicMock(raw_transaction=b"raw")
         web3.eth.send_raw_transaction.return_value = bytes.fromhex("a" * 64)
 
-        def slow_receipt(tx_hash):
+        def slow_receipt(tx_hash, timeout=None):
             time.sleep(0.3)  # simulated congested RPC
             return {
                 "transactionHash": bytes.fromhex("a" * 64),
